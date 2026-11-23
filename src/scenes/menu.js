@@ -11,6 +11,14 @@ export class EscenaMenu extends Phaser.Scene {
     super('Menu');
   }
 
+  preload() {
+    this.load.audio('sfx-boton-enfocar', new URL('../../assets/audio/efectos/boton-enfocar.wav', import.meta.url).href);
+    this.load.audio('sfx-boton-activar', new URL('../../assets/audio/efectos/boton-activar.wav', import.meta.url).href);
+    this.load.on('loaderror', archivo => {
+      if (archivo.key.startsWith('sfx-boton-')) console.error('No se pudo cargar el sonido:', archivo.src);
+    });
+  }
+
   create() {
     registrarSpritesPixel(this);
     this.dibujarPaisaje();
@@ -94,21 +102,41 @@ export class EscenaMenu extends Phaser.Scene {
     this.opciones.push({ fondo, indicador, accion });
     if (accion) {
       fondo.setInteractive(new Phaser.Geom.Rectangle(0, 0, 432, 60), Phaser.Geom.Rectangle.Contains)
-        .on('pointerover', () => this.seleccionar(indice))
+        .on('pointerover', () => this.seleccionar(indice, true))
         .on('pointerdown', () => {
           this.seleccionar(indice);
+          this.reproducirSonidoBoton('activar', true);
           accion();
         });
     }
   }
 
-  seleccionar(indice) {
+  seleccionar(indice, conSonido = false) {
     this.seleccion = indice;
+    if (conSonido) this.reproducirSonidoBoton('enfocar');
     this.opciones.forEach(({ fondo, indicador, accion }, i) => {
       const activa = i === indice;
       this.dibujarOpcion(fondo, activa ? 'bosqueOscuro' : accion ? 'tinta' : 'rocaOscura');
       indicador.setVisible(activa);
     });
+  }
+
+  reproducirSonidoBoton(tipo, gestoUsuario = false) {
+    const opciones = {
+      enfocar: { clave: 'sfx-boton-enfocar', volumen: 0.75 },
+      activar: { clave: 'sfx-boton-activar', volumen: 0.85 }
+    }[tipo];
+    if (!opciones || !this.cache.audio.exists(opciones.clave)) return;
+
+    const sonar = () => this.sound.play(opciones.clave, { volume: opciones.volumen });
+    if (this.sound.locked) {
+      if (gestoUsuario) {
+        this.sound.once(Phaser.Sound.Events.UNLOCKED, sonar);
+        this.sound.unlock();
+      }
+      return;
+    }
+    sonar();
   }
 
   moverSeleccion(paso) {
@@ -117,7 +145,7 @@ export class EscenaMenu extends Phaser.Scene {
     do {
       indice = Phaser.Math.Wrap(indice + paso, 0, total);
     } while (!this.opciones[indice].accion);
-    this.seleccionar(indice);
+    this.seleccionar(indice, true);
   }
 
   update() {
@@ -126,8 +154,13 @@ export class EscenaMenu extends Phaser.Scene {
     const arriba = [UP, W].map(pulsada).some(Boolean);
     const abajo = [DOWN, S].map(pulsada).some(Boolean);
     const elegir = [ENTER, SPACE].map(pulsada).some(Boolean);
-    if (pulsada(ESC) && this.pantallaSecundaria) this.mostrarPrincipal();
-    else if (elegir) this.opciones[this.seleccion].accion();
+    if (pulsada(ESC) && this.pantallaSecundaria) {
+      this.reproducirSonidoBoton('activar', true);
+      this.mostrarPrincipal();
+    } else if (elegir) {
+      this.reproducirSonidoBoton('activar', true);
+      this.opciones[this.seleccion].accion();
+    }
     else if (arriba || abajo) this.moverSeleccion(arriba ? -1 : 1);
   }
 }
