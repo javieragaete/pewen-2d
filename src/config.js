@@ -18,6 +18,12 @@ export const CONFIG = {
     alcanceDescanso: 115,
     velocidadSinNewen: 0.45
   },
+  jornadas: {
+    cantidad: 3,
+    tarjetaMs: 1500,
+    resumenMs: 2700,
+    fundidoMs: 250
+  },
   recoleccion: {
     alcance: 82,
     pausaPermiso: 950,
