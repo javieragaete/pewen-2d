@@ -4,9 +4,10 @@ const { pantalla, mundo, mapa, recoleccion, colores } = CONFIG;
 const { Input, Math: Matematica } = globalThis.Phaser;
 
 export class Recoleccion {
-  constructor(escena) {
+  constructor(escena, alRecolectar) {
     this.escena = escena;
     this.pinones = 0;
+    this.alRecolectar = alRecolectar;
     this.pewenes = mapa.pewenes.map(([x, y]) => this.crearPewen(x, y));
     this.teclas = escena.input.keyboard.addKeys({ interactuar: 'E', permiso: 'ONE', directa: 'TWO' });
     this.ocupaAlJugador = false;
@@ -91,6 +92,7 @@ export class Recoleccion {
     pewen.recolectado = true;
     pewen.pinones.setVisible(false);
     this.pinones += efecto.pinones;
+    this.alRecolectar(efecto);
     this.ocupaAlJugador = false;
     this.mostrar('+' + efecto.pinones + ' piñones');
     this.aviso = this.escena.time.delayedCall(recoleccion.duracionAviso, () => this.panel.setVisible(false));
@@ -101,3 +103,4 @@ export class Recoleccion {
     this.panel.setVisible(true);
   }
 }
+

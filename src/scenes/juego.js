@@ -1,7 +1,8 @@
 import { CONFIG } from '../config.js';
 import { Recoleccion } from './recoleccion.js';
+import { Hud } from './hud.js';
 
-const { pantalla, mundo, jugador, camara, mapa, colores: c } = CONFIG;
+const { pantalla, mundo, jugador, camara, mapa, partida, colores: c } = CONFIG;
 const Phaser = globalThis.Phaser;
 
 export class EscenaJuego extends Phaser.Scene {
@@ -14,7 +15,12 @@ export class EscenaJuego extends Phaser.Scene {
     this.dibujarMapa();
     this.crearRuka();
     this.crearJugador();
-    this.recoleccion = new Recoleccion(this);
+    this.newen = partida.newenInicial;
+    this.equilibrio = partida.equilibrioInicial;
+    this.posicionAnterior = new Phaser.Math.Vector2(this.personaje.x, this.personaje.y);
+    this.recoleccion = new Recoleccion(this, efecto => this.aplicarRecoleccion(efecto));
+    this.hud = new Hud(this);
+    this.finJornada = null;
 
     this.flechas = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys('W,A,S,D');
@@ -114,20 +120,39 @@ export class EscenaJuego extends Phaser.Scene {
     this.physics.add.collider(this.personaje, this.obstaculoRuka);
   }
 
-  update() {
+  aplicarRecoleccion(efecto) {
+    this.newen = Phaser.Math.Clamp(this.newen + efecto.newen, 0, partida.maximoBarra);
+    this.equilibrio = Phaser.Math.Clamp(this.equilibrio + efecto.equilibrio, 0, partida.maximoBarra);
+  }
+
+  update(tiempo, delta) {
     const { left, right, up, down } = this.flechas;
     const { W, A, S, D } = this.wasd;
     const x = Number(right.isDown || D.isDown) - Number(left.isDown || A.isDown);
     const y = Number(down.isDown || S.isDown) - Number(up.isDown || W.isDown);
+    const personaje = this.personaje;
+    const moviendose = !this.posicionAnterior.equals(personaje);
+    this.posicionAnterior.set(personaje.x, personaje.y);
+    const cercaDeRuka = Phaser.Math.Distance.Between(personaje.x, personaje.y, mapa.ruka.x, mapa.ruka.y)
+      <= partida.alcanceDescanso;
+    const descansando = cercaDeRuka && !moviendose && x === 0 && y === 0 && this.newen < partida.maximoBarra;
+
+    // La energía se actualiza por segundo, independientemente de los fotogramas.
+    const cambio = moviendose ? -partida.desgastePorSegundo : descansando ? partida.descansoPorSegundo : 0;
+    this.newen = Phaser.Math.Clamp(this.newen + cambio * delta / 1000, 0, partida.maximoBarra);
+    this.recoleccion.actualizar(personaje);
+
+    const velocidad = personaje.body.velocity;
+    const factor = this.newen === 0 ? partida.velocidadSinNewen : 1;
     // Normalizar mantiene la misma velocidad en línea recta y en diagonal.
-    const velocidad = this.personaje.body.velocity;
-    this.recoleccion.actualizar(this.personaje);
-    if (this.recoleccion.ocupaAlJugador) {
-      velocidad.set(0, 0);
-      return;
-    }
-    velocidad.set(x, y).normalize().scale(jugador.velocidad);
-    this.personaje.setDepth(this.personaje.y);
+    velocidad.set(x, y).normalize().scale(jugador.velocidad * factor);
+    if (this.recoleccion.ocupaAlJugador) velocidad.set(0, 0);
+    personaje.setDepth(personaje.y);
+
+    this.finJornada ??= tiempo + partida.duracionJornada * 1000;
+    const segundosRestantes = Math.max(0, Math.ceil((this.finJornada - tiempo) / 1000));
+    this.hud.actualizar(this.newen, this.equilibrio, this.recoleccion.pinones, segundosRestantes, descansando && this.newen < partida.maximoBarra);
   }
 }
+
 

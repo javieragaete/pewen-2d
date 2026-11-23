@@ -3,6 +3,17 @@ export const CONFIG = {
   mundo: { ancho: 1600, alto: 1200 },
   jugador: { inicioX: 275, inicioY: 660, velocidad: 245, radio: 14 },
   camara: { seguimiento: 0.12 },
+  partida: {
+    newenInicial: 100,
+    equilibrioInicial: 50,
+    maximoBarra: 100,
+    metaPinones: 20,
+    duracionJornada: 120,
+    desgastePorSegundo: 1.4,
+    descansoPorSegundo: 22,
+    alcanceDescanso: 115,
+    velocidadSinNewen: 0.45
+  },
   recoleccion: {
     alcance: 82,
     pausaPermiso: 950,
