@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba aislada — Sistemas Pewén</title>
+  <style>
+    body { margin: 0; background: #202522; color: #e6e7d8; font: 16px Consolas, "Courier New", monospace; }
+    main { width: min(100vw, 1280px); margin: auto; }
+    canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+    nav { display: flex; flex-wrap: wrap; gap: .35rem; padding: 8px; }
+    button { padding: .4rem .55rem; color: #e6e7d8; background: #344c3b; border: 2px solid #202522; font: 12px Consolas, "Courier New", monospace; cursor: pointer; }
+    output { display: block; padding: 6px 10px; background: #202522; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav aria-label="Eventos de prueba">
+      <button id="cargar">Cargar 3 piñones</button>
+      <button id="entregar">Simular entrega en la ruka</button>
+      <button id="pausar">Pausar/reanudar por diálogo</button>
+      <button id="avanzar">Simular 120 segundos</button>
+      <button id="acercar">Acercar al pewén</button>
+      <button id="acercar-siguiente">Acercar al siguiente pewén</button>
+      <button id="interactuar">Abrir menú del pewén</button>
+      <button id="permiso">Elegir permiso</button>
+      <button id="directa">Elegir toma directa</button>
+      <button id="recoger">Recoger piñones caídos</button>
+      <button id="dialogo-lonko">Hablar con Lonko</button>
+      <button id="dialogo-kimche">Hablar con Kimche</button>
+      <button id="ver-prologo">Probar prólogo</button>
+      <button id="ver-final">Probar final</button>
+      <button id="rescate">Simular rescate en agua</button>
+      <button id="final-bueno">Probar final favorable</button>
+      <button id="reiniciar">Reiniciar prueba</button>
+    </nav>
+    <div id="juego" aria-label="Escena de prueba de sistemas"></div>
+    <output id="estado">Iniciando prueba…</output>
+  </main>
+  <script src="../vendor/phaser.min.js"></script>
+  <script type="module">
+    import { iniciarSistemas, leerEstado, guardarEstado } from '../src/sistemas/estado.js';
+    import { EscenaPrologo } from '../src/scenes/prologo.js';
+    import { EscenaFinal } from '../src/scenes/final.js';
+
+    class MundoSimulado extends Phaser.Scene {
+      constructor() { super('Mundo'); }
+      create() {
+        this.add.rectangle(640, 540, 1280, 360, 0x4a6845);
+        this.add.rectangle(640, 690, 1280, 60, 0x92704b);
+        this.jugador = this.add.rectangle(640, 600, 24, 42, 0xc3845e).setStrokeStyle(2, 0x202522);
+        this.anclas = {
+          inicioJugador: { x: 640, y: 600 }, rukaPrincipal: { x: 220, y: 600 },
+          pewenes: [{ x: 980, y: 640, tipo: 'adulto', variante: 'a' }, { x: 1110, y: 640, tipo: 'joven' }]
+        };
+        iniciarSistemas(this);
+        this.game.events.on('hud:actualizar', () => mostrarEstado(this));
+        this.game.events.on('hud:reloj', () => mostrarEstado(this));
+        this.game.events.on('jornada:inicio', () => mostrarEstado(this));
+        mostrarEstado(this);
+      }
+    }
+
+    const juego = new Phaser.Game({
+      type: Phaser.AUTO, parent: 'juego', width: 1280, height: 720,
+      pixelArt: true, roundPixels: true, scene: [MundoSimulado, EscenaPrologo, EscenaFinal]
+    });
+    let ultimoCambioNewen = 'sin cambio';
+    juego.events.on('newen:cambio', ({ newen }) => { ultimoCambioNewen = `{ newen: ${newen} }`; });
+    const escenaActiva = () => juego.scene.getScene('Mundo');
+    function mostrarEstado(escena) {
+      const s = leerEstado(escena.game);
+      const ms = escena.sistemas?.tiempoRestante ?? 120000;
+      const bosque = escena.sistemas?.pewenes.arboles.map(arbol => arbol.secoTemporal ? 'seco' : arbol.recuperaEn ? 'recupera' : 'disponible').join(', ') ?? 'iniciando';
+      document.querySelector('#estado').textContent =
+        `Jornada ${s.jornada}/3 · newen ${Math.round(s.newen)} · equilibrio ${Math.round(s.equilibrio)} · carga ${s.pinonesLlevados} · lof ${s.pinonesEntregados}/28 · reloj ${Math.ceil(ms / 1000)} s · permisos ${s.permisosPedidos} · directas ${s.tomasDirectas} · evento ${ultimoCambioNewen} · pewenes: ${bosque}`;
+    }
+
+    document.querySelector('#cargar').onclick = () => {
+      const escena = escenaActiva();
+      const s = leerEstado(escena.game); s.pinonesLlevados += 3; guardarEstado(escena.game, s); mostrarEstado(escena);
+    };
+    document.querySelector('#entregar').onclick = () => juego.events.emit('entrega:pinones');
+    let bloqueado = false;
+    document.querySelector('#pausar').onclick = () => {
+      bloqueado = !bloqueado;
+      juego.events.emit('jugador:bloqueado', { bloqueado });
+    };
+    document.querySelector('#avanzar').onclick = () => {
+      const escena = escenaActiva();
+      escena.events.emit('update', escena.time.now, 120000);
+      mostrarEstado(escena);
+    };
+    document.querySelector('#acercar').onclick = () => escenaActiva().jugador.setPosition(980, 620);
+    document.querySelector('#acercar-siguiente').onclick = () => escenaActiva().jugador.setPosition(1110, 620);
+    document.querySelector('#interactuar').onclick = () => {
+      const escena = escenaActiva();
+      const arbol = escena.sistemas.pewenes.arboles
+        .filter(item => !item.recolectado)
+        .sort((a, b) => Math.hypot(a.x - escena.jugador.x, a.y - escena.jugador.y)
+          - Math.hypot(b.x - escena.jugador.x, b.y - escena.jugador.y))[0];
+      escena.sistemas.pewenes.recolectar.abrir(arbol);
+    };
+    document.querySelector('#permiso').onclick = () => escenaActiva().sistemas.recoleccion.elegir(true);
+    document.querySelector('#directa').onclick = () => escenaActiva().sistemas.recoleccion.elegir(false);
+    document.querySelector('#recoger').onclick = () => {
+      const escena = escenaActiva();
+      for (const pinon of escena.sistemas.recoleccion.pinonesSuelo.filter(p => p.recogible && !p.vencido)) {
+        escena.jugador.setPosition(pinon.x, pinon.y);
+        escena.sistemas.recoleccion.actualizarPinones();
+      }
+      mostrarEstado(escena);
+    };
+    document.querySelector('#dialogo-lonko').onclick = () => juego.events.emit('dialogo:npc', { rol: 'Lonko' });
+    document.querySelector('#dialogo-kimche').onclick = () => juego.events.emit('dialogo:npc', { rol: 'Kimche' });
+    document.querySelector('#ver-prologo').onclick = () => juego.scene.start('Prologo');
+    document.querySelector('#ver-final').onclick = () => juego.scene.start('Final');
+    document.querySelector('#rescate').onclick = () => {
+      const escena = escenaActiva();
+      const estado = leerEstado(escena.game);
+      estado.newen = 0; estado.pinonesLlevados = 10; guardarEstado(escena.game, estado);
+      escena.game.events.emit('hud:actualizar', { ...estado });
+      escena.game.events.emit('agua:cambio', { dentro: true });
+      escena.jugador.setPosition(escena.jugador.x + 4, escena.jugador.y);
+      escena.events.emit('update', escena.time.now, 16);
+      mostrarEstado(escena);
+    };
+    document.querySelector('#final-bueno').onclick = () => {
+      const escena = escenaActiva();
+      const estado = leerEstado(escena.game);
+      estado.pinonesEntregados = 28; estado.equilibrio = 70;
+      estado.permisosPedidos = 4; estado.tomasDirectas = 1;
+      guardarEstado(escena.game, estado); juego.scene.start('Final');
+    };
+    document.querySelector('#reiniciar').onclick = () => location.reload();
+  </script>
+</body>
+</html>
+
