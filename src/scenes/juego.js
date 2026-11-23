@@ -1,10 +1,12 @@
 import { CONFIG } from '../config.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
-import { ESCALA_PIXEL, registrarSpritesPersonaje } from '../sprites.js';
+import { ESCALA_PIXEL, registrarSpritesPixel } from '../sprites.js';
 
-const { pantalla, mundo, jugador, camara, mapa, partida, colores: c } = CONFIG;
+const { pantalla, mundo, jugador, camara, mapa, partida, paletaPixel } = CONFIG;
 const Phaser = globalThis.Phaser;
+const mono = 'Consolas, "Courier New", monospace';
+const color = clave => Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
 
 export class EscenaJuego extends Phaser.Scene {
   constructor() {
@@ -12,7 +14,7 @@ export class EscenaJuego extends Phaser.Scene {
   }
 
   create() {
-    registrarSpritesPersonaje(this);
+    registrarSpritesPixel(this);
     this.physics.world.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.dibujarMapa();
     this.crearRuka();
@@ -21,6 +23,8 @@ export class EscenaJuego extends Phaser.Scene {
     this.equilibrio = partida.equilibrioInicial;
     this.posicionAnterior = new Phaser.Math.Vector2(this.personaje.x, this.personaje.y);
     this.recoleccion = new Recoleccion(this, efecto => this.aplicarRecoleccion(efecto));
+    this.estadoPaisaje = 'normal';
+    this.recoleccion.actualizarEquilibrio(this.equilibrio);
     this.hud = new Hud(this);
     this.finJornada = null;
 
@@ -29,80 +33,149 @@ export class EscenaJuego extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.cameras.main.startFollow(this.personaje, true, camara.seguimiento, camara.seguimiento);
 
-    this.add.text(24, pantalla.alto - 24, 'Flechas o WASD · Mover', {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '16px',
-      color: c.texto,
-      backgroundColor: c.negro,
-      padding: { x: 12, y: 8 }
-    }).setOrigin(0, 1).setScrollFactor(0).setDepth(mundo.alto + 1);
+    const marcoAyuda = this.add.graphics({ x: 12, y: pantalla.alto - 54 });
+    marcoAyuda.fillStyle(color('tinta')).fillRect(0, 0, 264, 40);
+    marcoAyuda.fillStyle(color('musgo')).fillRect(0, 0, 264, 3);
+    marcoAyuda.fillRect(0, 37, 264, 3).fillRect(0, 0, 3, 40).fillRect(261, 0, 3, 40);
+    marcoAyuda.setScrollFactor(0).setDepth(mundo.alto + 1);
+    this.add.text(26, pantalla.alto - 44, 'Flechas o WASD · Mover', {
+      fontFamily: mono, fontSize: '16px', color: paletaPixel.nieve
+    }).setScrollFactor(0).setDepth(mundo.alto + 1);
   }
 
   dibujarMapa() {
-    const terreno = this.add.graphics().setDepth(-1);
+    const anchoTile = 32;
+    this.fondoSuelo = this.add.tileSprite(0, 0, mundo.ancho, mundo.alto, 'tile-suelo-bosque-normal')
+      .setOrigin(0).setDepth(-20);
+    this.fondoSuelo.tileScaleX = 2;
+    this.fondoSuelo.tileScaleY = 2;
+    this.terrenoClaro = [];
+
+    // Baldosas de 16x16 ampliadas x2; el borde común de cada tile evita costuras.
+    for (let y = 320; y < mundo.alto; y += anchoTile) {
+      for (let x = 32; x < 1024; x += anchoTile) {
+        const dx = (x + anchoTile / 2 - 500) / 500;
+        const dy = (y + anchoTile / 2 - 690) / 360;
+        if (dx * dx + dy * dy <= 1) {
+          const tile = this.add.image(x, y, 'tile-suelo-claro-normal')
+            .setOrigin(0).setScale(2).setDepth(-19);
+          this.terrenoClaro.push(tile);
+        }
+      }
+    }
+
+    // Siluetas de montaña hechas con píxeles de la paleta.
+    [[0, 260, 4, 0], [300, 210, 4, 1], [650, 255, 4, 0], [1010, 230, 4, 1], [1330, 275, 4, 0]]
+      .forEach(([x, y, escala, variante]) => {
+        this.add.image(x, y, 'montana-' + variante).setOrigin(0, 1).setScale(escala).setDepth(-15);
+      });
+
+    // Camino discreto en una cuadrícula pixelada de 32 unidades.
+    const caminoTiles = new Set();
+    for (let i = 0; i < mapa.camino.length - 1; i++) {
+      const [ax, ay] = mapa.camino[i];
+      const [bx, by] = mapa.camino[i + 1];
+      const distancia = Phaser.Math.Distance.Between(ax, ay, bx, by);
+      const pasos = Math.max(1, Math.ceil(distancia / 18));
+      for (let paso = 0; paso <= pasos; paso++) {
+        const t = paso / pasos;
+        const x = Math.round((ax + (bx - ax) * t) / anchoTile) * anchoTile;
+        const y = Math.round((ay + (by - ay) * t) / anchoTile) * anchoTile;
+        caminoTiles.add(x + ',' + y);
+      }
+    }
+    for (const clave of caminoTiles) {
+      const [x, y] = clave.split(',').map(Number);
+      this.add.image(x, y, 'tile-camino').setOrigin(0).setScale(2).setDepth(-10);
+    }
+
+    // El río se construye con losetas y conserva una animación de agua sutil.
+    this.aguaAnimada = [];
+    const curva = new Phaser.Curves.Spline(mapa.rio.map(([x, y]) => new Phaser.Math.Vector2(x, y)));
+    const puntos = curva.getPoints(180);
+    const aguaTiles = new Set();
+    const riberaTiles = new Set();
+    for (let i = 1; i < puntos.length - 1; i += 2) {
+      const antes = puntos[i - 1];
+      const despues = puntos[i + 1];
+      const dx = despues.x - antes.x;
+      const dy = despues.y - antes.y;
+      const largo = Math.hypot(dx, dy) || 1;
+      const nx = -dy / largo;
+      const ny = dx / largo;
+      for (const offset of [-32, 0, 32]) {
+        const x = Math.floor((puntos[i].x + nx * offset) / anchoTile) * anchoTile;
+        const y = Math.floor((puntos[i].y + ny * offset) / anchoTile) * anchoTile;
+        aguaTiles.add(x + ',' + y);
+      }
+      for (const offset of [-64, 64]) {
+        const x = Math.floor((puntos[i].x + nx * offset) / anchoTile) * anchoTile;
+        const y = Math.floor((puntos[i].y + ny * offset) / anchoTile) * anchoTile;
+        riberaTiles.add(x + ',' + y);
+      }
+    }
+    for (const clave of riberaTiles) {
+      const [x, y] = clave.split(',').map(Number);
+      this.add.image(x, y, 'tile-ribera').setOrigin(0).setScale(2).setDepth(-9);
+    }
+    for (const clave of aguaTiles) {
+      const [x, y] = clave.split(',').map(Number);
+      this.aguaAnimada.push(this.add.image(x, y, 'agua-0').setOrigin(0).setScale(2).setDepth(-8));
+    }
+    this.aguaFrame = 0;
+    this.time.addEvent({
+      delay: 760,
+      loop: true,
+      callback: () => {
+        this.aguaFrame = 1 - this.aguaFrame;
+        this.aguaAnimada.forEach(tile => tile.setTexture('agua-' + this.aguaFrame));
+      }
+    });
+
     const azar = new Phaser.Math.RandomDataGenerator([String(mapa.semilla)]);
-    terreno.fillStyle(c.suelo).fillRect(0, 0, mundo.ancho, mundo.alto);
-    terreno.fillStyle(c.claro).fillEllipse(505, 622, 910, 540);
-    terreno.fillStyle(c.bosque).fillEllipse(1375, 717, 570, 1080);
-
-    // La silueta de las montañas enmarca el borde norte del mapa.
-    for (const [x, y, ancho, alto] of [[0, 35, 410, 245], [260, 13, 695, 265], [720, -32, 560, 257], [1130, 32, 532, 245]]) {
-      terreno.fillStyle(c.montana).fillTriangle(x, y + alto, x + ancho * 0.46, y, x + ancho, y + alto);
-      terreno.fillStyle(c.cumbre).fillTriangle(x + ancho * 0.28, y + alto * 0.39, x + ancho * 0.46, y, x + ancho * 0.67, y + alto * 0.39);
-    }
-
     for (let i = 0; i < mapa.matas; i++) {
-      const x = azar.between(0, mundo.ancho);
-      const y = azar.between(220, mundo.alto);
-      terreno.fillStyle(c.hierba, 0.46).fillTriangle(x, y, x + 4, y - azar.between(4, 11), x + 9, y);
+      const x = azar.between(20, mundo.ancho - 20);
+      const y = azar.between(300, mundo.alto - 20);
+      if (x > 990 && x < 1200) continue;
+      const variante = i % 3;
+      this.add.image(x, y, 'pasto-' + variante).setOrigin(0.5, 1).setScale(2).setDepth(y - 1);
     }
-
-    const camino = mapa.camino.map(([x, y]) => new Phaser.Math.Vector2(x, y));
-    const rio = new Phaser.Curves.Spline(mapa.rio.map(([x, y]) => new Phaser.Math.Vector2(x, y))).getPoints(100);
-    terreno.lineStyle(31, c.camino, 0.85).strokePoints(camino);
-    terreno.lineStyle(87, c.bordeRio).strokePoints(rio);
-    terreno.lineStyle(72, c.rio).strokePoints(rio);
-    terreno.lineStyle(2, c.reflejo, 0.65);
-    for (let i = 3; i < rio.length - 4; i += 6) {
-      const lado = i % 4 === 1 ? 17 : -17;
-      terreno.lineBetween(rio[i].x + lado, rio[i].y, rio[i + 2].x + lado, rio[i + 2].y);
-    }
-
-    // La decoración del suelo se repite en la misma posición al recargar.
     for (let i = 0; i < mapa.piedras; i++) {
       const x = azar.between(35, mundo.ancho - 35);
-      const y = azar.between(280, mundo.alto - 25);
+      const y = azar.between(300, mundo.alto - 20);
       if (x > 990 && x < 1200) continue;
-      const ancho = azar.between(7, 19);
-      terreno.fillStyle(c.roca).fillEllipse(x, y, ancho * 2, ancho);
-      terreno.fillStyle(c.hierba, 0.65).fillEllipse(x - 3, y - 2, ancho, ancho * 0.4);
+      this.add.image(x, y, 'roca-' + (i % 2)).setOrigin(0.5, 1).setScale(2).setDepth(y);
+      if (i % 3 === 0) this.add.image(x + 16, y, 'arbusto').setOrigin(0.5, 1).setScale(2).setDepth(y + 1);
     }
+    mapa.arboles.forEach(([x, y], indice) => {
+      this.add.image(x, y, 'arbol-nativo-' + (indice % 2))
+        .setOrigin(0.5, 1).setScale(3).setDepth(y);
+    });
+  }
 
-    for (const [x, y] of mapa.arboles) {
-      const arbol = this.add.graphics({ x, y }).setDepth(y);
-      arbol.fillStyle(c.sombra, 0.35).fillEllipse(10, 2, 65, 19);
-      arbol.fillStyle(c.madera).fillRect(-4, -54, 8, 56);
-      arbol.fillStyle(c.hoja).fillTriangle(-31, -16, 0, -92, 32, -16);
-      arbol.fillStyle(c.hojaClara).fillTriangle(-23, -35, 0, -97, 21, -35);
-    }
+  actualizarEstadoPaisaje(equilibrio) {
+    const estado = equilibrio >= 60 ? 'sano' : equilibrio <= 30 ? 'seco' : 'normal';
+    if (estado === this.estadoPaisaje) return;
+    this.estadoPaisaje = estado;
+    this.fondoSuelo?.setTexture('tile-suelo-bosque-' + estado);
+    this.terrenoClaro?.forEach(tile => tile.setTexture('tile-suelo-claro-' + estado));
+    this.recoleccion?.actualizarEquilibrio(equilibrio);
   }
 
   crearRuka() {
     const { x, y, ancho, alto } = mapa.ruka;
-    const ruka = this.add.graphics({ x, y }).setDepth(y + alto / 2);
-    ruka.fillStyle(c.sombra, 0.45).fillEllipse(11, 20, 165, 49);
-    ruka.fillStyle(c.muro).fillRoundedRect(-ancho / 2, -29, ancho, 52, 7);
-    ruka.fillStyle(c.techoSombra).fillTriangle(-79, -10, -34, -69, 39, -10);
-    ruka.fillStyle(c.techo).fillPoints([
-      { x: -34, y: -69 }, { x: 39, y: -69 }, { x: 80, y: -10 }, { x: 7, y: -10 }
-    ], true);
-    ruka.lineStyle(2, c.techoSombra, 0.55);
-    for (let franja = 0; franja < 4; franja++) {
-      const distancia = 11 + franja * 12;
-      const borde = -34 + distancia * 41 / 59;
-      ruka.lineBetween(borde, -69 + distancia, borde + 73, -69 + distancia);
-    }
-    ruka.fillStyle(c.sombra).fillRoundedRect(10, -5, 22, 28, 5);
+    const base = y + alto / 2;
+    this.rukaVisual = this.add.image(x, base, 'ruka')
+      .setOrigin(0.5, 1).setScale(3).setDepth(base);
+    this.humoRuka = this.add.image(x + 8, base - 88, 'humo-0')
+      .setOrigin(0.5, 1).setScale(2).setDepth(base - 1);
+    this.time.addEvent({
+      delay: 620,
+      loop: true,
+      callback: () => this.humoRuka.setTexture(this.humoRuka.texture.key === 'humo-0' ? 'humo-1' : 'humo-0')
+    });
+
+    // La zona física permanece igual que antes del cambio visual.
     this.obstaculoRuka = this.add.zone(x, y, ancho, alto);
     this.physics.add.existing(this.obstaculoRuka, true);
   }
@@ -137,6 +210,7 @@ export class EscenaJuego extends Phaser.Scene {
   aplicarRecoleccion(efecto) {
     this.newen = Phaser.Math.Clamp(this.newen + efecto.newen, 0, partida.maximoBarra);
     this.equilibrio = Phaser.Math.Clamp(this.equilibrio + efecto.equilibrio, 0, partida.maximoBarra);
+    this.actualizarEstadoPaisaje(this.equilibrio);
   }
 
   update(tiempo, delta) {
@@ -170,5 +244,8 @@ export class EscenaJuego extends Phaser.Scene {
     this.hud.actualizar(this.newen, this.equilibrio, this.recoleccion.pinones, segundosRestantes, descansando && this.newen < partida.maximoBarra);
   }
 }
+
+
+
 
 
