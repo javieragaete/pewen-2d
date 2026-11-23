@@ -9,13 +9,22 @@ const { pantalla, mundo, jugador, camara, mapa, partida, paletaPixel } = CONFIG;
 const Phaser = globalThis.Phaser;
 const mono = 'Consolas, "Courier New", monospace';
 const color = clave => Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
+const URL_TEMA = new URL('../../assets/audio/tema_mapuche_tribal/tema.wav', import.meta.url).href;
 
 export class EscenaJuego extends Phaser.Scene {
   constructor() {
     super('Juego');
   }
 
+  preload() {
+    if (!this.cache.audio.exists('tema-mapuche-tribal')) this.load.audio('tema-mapuche-tribal', URL_TEMA);
+    this.load.on('loaderror', archivo => {
+      if (archivo.key === 'tema-mapuche-tribal') console.error('No se pudo cargar la música:', archivo.src);
+    });
+  }
+
   create() {
+    this.iniciarMusicaDeFondo();
     registrarSpritesPixel(this);
     this.physics.world.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.dibujarMapa();
@@ -46,6 +55,21 @@ export class EscenaJuego extends Phaser.Scene {
       targets: [marcoAyuda, ayudaControl], alpha: 0, duration: 500,
       onComplete: () => { marcoAyuda.setVisible(false); ayudaControl.setVisible(false); }
     }));
+  }
+
+  iniciarMusicaDeFondo() {
+    this.musica = this.sound.add('tema-mapuche-tribal', { loop: true, volume: 0.24 });
+    this._iniciarMusica = () => {
+      if (this.sound.locked || !this.musica || this.musica.isPlaying) return;
+      this.sound.off(Phaser.Sound.Events.UNLOCKED, this._iniciarMusica);
+      this.musica.play();
+    };
+    if (this.sound.locked) this.sound.once(Phaser.Sound.Events.UNLOCKED, this._iniciarMusica);
+    else this._iniciarMusica();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.sound.off(Phaser.Sound.Events.UNLOCKED, this._iniciarMusica);
+      this.musica?.stop();
+    });
   }
 
   dibujarMapa() {
