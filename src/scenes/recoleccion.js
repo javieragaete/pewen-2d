@@ -1,25 +1,34 @@
 import { CONFIG } from '../config.js';
 
-const { pantalla, mundo, mapa, recoleccion, colores } = CONFIG;
+const { pantalla, mundo, mapa, recoleccion, paletaPixel } = CONFIG;
 const { Input, Math: Matematica } = globalThis.Phaser;
+const mono = 'Consolas, "Courier New", monospace';
+const color = clave => globalThis.Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
 
 export class Recoleccion {
   constructor(escena, alRecolectar) {
     this.escena = escena;
     this.pinones = 0;
     this.alRecolectar = alRecolectar;
+    this.estadoPewen = null;
     this.pewenes = mapa.pewenes.map(([x, y]) => this.crearPewen(x, y));
     this.teclas = escena.input.keyboard.addKeys({ interactuar: 'E', permiso: 'ONE', directa: 'TWO' });
     this.ocupaAlJugador = false;
     this.objetivo = null;
     this.pista = escena.add.text(0, 0, '', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '17px',
-      color: colores.texto, backgroundColor: colores.negro, padding: { x: 10, y: 6 }
+      fontFamily: mono, fontSize: '17px',
+      color: paletaPixel.nieve, backgroundColor: paletaPixel.tinta, padding: { x: 10, y: 6 }
     }).setOrigin(0.5, 1).setDepth(mundo.alto + 2).setVisible(false);
-    const panel = escena.add.rectangle(0, 0, 510, 162, 0x18231e, 0.97);
+
+    const panel = escena.add.graphics();
+    panel.fillStyle(color('tinta')).fillRect(-255, -81, 510, 162);
+    panel.fillStyle(color('rojo')).fillRect(-255, -81, 510, 4);
+    panel.fillRect(-255, 77, 510, 4).fillRect(-255, -81, 4, 162).fillRect(251, -81, 4, 162);
+    panel.fillStyle(color('madera')).fillRect(-247, -73, 494, 2);
+    panel.fillRect(-247, 71, 494, 2).fillRect(-247, -73, 2, 146).fillRect(245, -73, 2, 146);
     const texto = escena.add.text(0, 0, '', {
-      fontFamily: 'system-ui, sans-serif', fontSize: '20px',
-      color: colores.texto, align: 'center', lineSpacing: 8, wordWrap: { width: 470 }
+      fontFamily: mono, fontSize: '20px',
+      color: paletaPixel.nieve, align: 'center', lineSpacing: 8, wordWrap: { width: 470 }
     }).setOrigin(0.5);
     this.texto = texto;
     this.panel = escena.add.container(pantalla.ancho / 2, pantalla.alto / 2, [panel, texto])
@@ -27,20 +36,24 @@ export class Recoleccion {
   }
 
   crearPewen(x, y) {
-    const arbol = this.escena.add.graphics({ x, y }).setDepth(y);
-    arbol.fillStyle(colores.sombra, 0.42).fillEllipse(9, 4, 109, 26);
-    arbol.fillStyle(colores.madera).fillRoundedRect(-7, -116, 14, 119, 3);
-    arbol.lineStyle(6, colores.madera);
-    for (const [lado, altura, alcance] of [[-1, -48, 36], [1, -62, 34], [-1, -79, 27], [1, -94, 27]]) {
-      arbol.lineBetween(0, altura, lado * alcance, altura - 19);
-      arbol.fillStyle(colores.hoja).fillEllipse(lado * alcance, altura - 22, 42, 23);
-      arbol.fillStyle(colores.hojaClara).fillEllipse(lado * alcance, altura - 26, 32, 15);
-    }
-    arbol.fillStyle(colores.hoja).fillEllipse(0, -115, 61, 31);
-    arbol.fillStyle(colores.hojaClara).fillEllipse(0, -122, 49, 21);
-    const pinones = this.escena.add.graphics({ x, y }).setDepth(y + 1);
-    pinones.fillStyle(colores.techo).fillEllipse(-16, 5, 9, 5).fillEllipse(-6, 12, 8, 5).fillEllipse(5, 7, 9, 5);
-    return { x, y, pinones, recolectado: false };
+    const arbol = this.escena.add.image(x, y, 'pewen-normal')
+      .setOrigin(0.5, 1).setScale(3).setDepth(y);
+    const pinones = this.escena.add.container(x, y - 7, [
+      this.escena.add.image(-16, 0, 'pinon').setScale(2),
+      this.escena.add.image(0, -5, 'pinon').setScale(2),
+      this.escena.add.image(16, 0, 'pinon').setScale(2)
+    ]).setDepth(y + 1);
+    return { x, y, arbol, pinones, recolectado: false };
+  }
+
+  actualizarEquilibrio(equilibrio) {
+    const estado = equilibrio >= 60 ? 'sano' : equilibrio <= 30 ? 'seco' : 'normal';
+    if (estado === this.estadoPewen) return;
+    this.estadoPewen = estado;
+    const escala = estado === 'sano' ? 3 : 2;
+    this.pewenes.forEach(pewen => {
+      pewen.arbol.setTexture('pewen-' + estado).setScale(escala);
+    });
   }
 
   actualizar(personaje) {
@@ -75,10 +88,35 @@ export class Recoleccion {
     }
   }
 
+  crearDestello(pewen) {
+    const destello = this.escena.add.image(pewen.x, pewen.y - 58, 'destello')
+      .setScale(2).setDepth(pewen.y + 2).setAlpha(0.8);
+    this.escena.tweens.add({
+      targets: destello, alpha: 0, duration: 520,
+      onComplete: () => destello.destroy()
+    });
+  }
+
+  crearParticulas(pewen) {
+    for (let i = 0; i < 4; i++) {
+      const pinon = this.escena.add.image(pewen.x + (i - 1.5) * 10, pewen.y - 48 - (i % 2) * 8, 'pinon')
+        .setScale(2).setDepth(pewen.y + 3);
+      this.escena.tweens.add({
+        targets: pinon,
+        x: pinon.x + (i - 1.5) * 5,
+        y: pinon.y - 22 - (i % 2) * 6,
+        alpha: 0,
+        duration: 320 + i * 25,
+        onComplete: () => pinon.destroy()
+      });
+    }
+  }
+
   elegir(pedirPermiso) {
     const pewen = this.objetivo;
     this.objetivo = null;
     if (pedirPermiso) {
+      this.crearDestello(pewen);
       this.mostrar('Pides permiso al Ngen del lugar.\nHaces una pausa.');
       this.escena.time.delayedCall(recoleccion.pausaPermiso, () => {
         this.recolectar(pewen, recoleccion.permiso);
@@ -89,6 +127,7 @@ export class Recoleccion {
   }
 
   recolectar(pewen, efecto) {
+    this.crearParticulas(pewen);
     pewen.recolectado = true;
     pewen.pinones.setVisible(false);
     this.pinones += efecto.pinones;
