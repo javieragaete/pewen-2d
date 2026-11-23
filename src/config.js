@@ -33,6 +33,23 @@ export const CONFIG = {
     hoja: 0x2f5040, hojaClara: 0x42654d, madera: 0x544835,
     techo: 0xa08a56, techoSombra: 0x796344, muro: 0x78694d,
     rojo: 0xa8403a, piel: 0xc3845e, texto: '#f3f2e3', negro: '#18231e'
+  },
+  paletaPixel: {
+    tinta: '#202522',
+    rojo: '#9b3a3a',
+    bosqueOscuro: '#344c3b',
+    bosque: '#4a6845',
+    verde: '#70905a',
+    musgo: '#9daf73',
+    rocaOscura: '#59635b',
+    roca: '#8b9283',
+    nieve: '#e6e7d8',
+    maderaOscura: '#49372b',
+    madera: '#6d5139',
+    tierra: '#92704b',
+    tierraClara: '#b69a67',
+    aguaOscura: '#477b78',
+    agua: '#77a19a',
+    piel: '#c3845e'
   }
 };
-
