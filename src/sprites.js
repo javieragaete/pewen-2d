@@ -155,21 +155,19 @@ function crearMatrizRuka() {
 
 function crearMatrizArbolNativo(variante) {
   const matriz = matrizVacia(24, 32);
-  const copa = variante === 0 ? 'D' : 'F';
-  for (let y = 2; y < 24; y++) {
-    for (let x = 2; x < 22; x++) {
-      const dx = (x - 12) / 10;
-      const dy = (y - 13) / 12;
-      if (dx * dx + dy * dy < 1) {
-        // Grupos de hojas iluminadas desde arriba a la izquierda.
-        const relieve = Math.sin(x * 0.74 + Math.floor(y / 3)) + Math.cos(y * 0.87);
-        matriz[y][x] = dx + dy > 0.85 ? 'D' : relieve - dx - dy > 1.35 ? (variante ? 'V' : 'F') : copa;
+  // Las faldas se solapan de abajo hacia arriba para marcar los pisos del pino.
+  for (let y = 19; y < 32; y++) {
+    matriz[y].splice(10, 4, 'B', 'W', 'B', 'B');
+  }
+  for (const [inicio, alto, radio] of [[12, 15, 11], [7, 13, 9], [3, 11, 7], [0, 10, 5]]) {
+    for (let fila = 0; fila < alto; fila++) {
+      const ancho = Math.floor(fila * (radio - variante) / (alto - 1));
+      for (let dx = -ancho; dx <= ancho; dx++) {
+        const y = inicio + fila - (fila === alto - 1 && Math.abs(dx) % 4 === 1 ? 1 : 0);
+        const luz = dx < 1 && fila < alto - 2 && (dx + fila + 16) % 6 < 4;
+        matriz[y][11 + dx] = luz ? (variante ? 'V' : 'F') : dx > 2 || fila >= alto - 2 ? 'D' : 'F';
       }
     }
-  }
-  for (let y = 22; y < 32; y++) {
-    matriz[y][11] = 'B';
-    matriz[y][12] = 'W';
   }
   return guardarMatriz(matriz);
 }

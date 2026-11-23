@@ -436,6 +436,8 @@ export class EscenaJuego extends Phaser.Scene {
   actualizarAmbiente(delta) {
     this.segundosViento += delta / 1000;
     this.animarRio();
+    const faseFuego = Math.floor(this.segundosViento * 6) % 4;
+    if (faseFuego !== this.faseFuego) this.dibujarLlama(faseFuego);
     // Chubasco breve sobre la cordillera, con entrada y salida graduales.
     const fase = this.segundosViento % 45 - 6;
     this.nevada.clear();
@@ -471,11 +473,32 @@ export class EscenaJuego extends Phaser.Scene {
     }
   }
 
+  dibujarLlama(fase) {
+    this.faseFuego = fase;
+    const g = this.llama.clear();
+    const punta = [-3, -1, 1, -1][fase];
+    g.fillStyle(0xbb4b2f).fillRect(-8,-8,16,7).fillRect(-6,-14,12,9)
+      .fillRect(punta,-20 - fase,4,9).fillRect(4,-12 - fase,3,8);
+    g.fillStyle(0xf39b3b).fillRect(-5,-9,10,7).fillRect(punta,-15,4,10);
+    g.fillStyle(0xffda73).fillRect(-2,-6,5,4).fillRect(0,-9,2,4);
+    g.fillStyle(0xffbc53).fillRect(4 + fase,-20 - fase * 2,2,2);
+  }
+
   crearRuka() {
     const { x, y, ancho, alto } = mapa.ruka;
     const base = y + alto / 2;
     this.rukaVisual = this.add.image(x, base, 'ruka')
       .setOrigin(0.5, 1).setScale(ESCALA_PIXEL).setDepth(base);
+    const brasero = this.add.graphics().setPosition(x - 75, base + 21).setDepth(base + 21);
+    brasero.fillStyle(0x29332b).fillRect(-15, -3, 32, 8);
+    for (const [dx, dy] of [[-15,-4],[-9,-8],[2,-8],[10,-5],[10,1],[-2,3],[-12,1]]) {
+      brasero.fillStyle(0x60665d).fillRect(dx, dy, 7, 4);
+      brasero.fillStyle(0x989a82).fillRect(dx, dy, 5, 1);
+    }
+    brasero.fillStyle(0x653d2a).fillRect(-10,-4,20,5);
+    brasero.fillStyle(0xb97b45).fillRect(-9,-3,5,3);
+    this.llama = this.add.graphics().setPosition(brasero.x, brasero.y - 3).setDepth(brasero.depth + 0.1);
+    this.dibujarLlama(0);
     banderaRuka(this, x + 43, base - 90, true).setDepth(base - 1);
     this.humoRuka = this.add.image(x + 8, base - 88, 'humo-0')
       .setOrigin(0.5, 1).setScale(2).setDepth(base - 1);
