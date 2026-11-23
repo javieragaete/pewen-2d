@@ -30,6 +30,8 @@
       <button id="dialogo-kimche">Hablar con Kimche</button>
       <button id="ver-prologo">Probar prólogo</button>
       <button id="ver-final">Probar final</button>
+      <button id="rescate">Simular rescate en agua</button>
+      <button id="final-bueno">Probar final favorable</button>
       <button id="reiniciar">Reiniciar prueba</button>
     </nav>
     <div id="juego" aria-label="Escena de prueba de sistemas"></div>
@@ -69,7 +71,7 @@
       const ms = escena.sistemas?.tiempoRestante ?? 120000;
       const bosque = escena.sistemas?.pewenes.arboles.map(arbol => arbol.secoTemporal ? 'seco' : arbol.recuperaEn ? 'recupera' : 'disponible').join(', ') ?? 'iniciando';
       document.querySelector('#estado').textContent =
-        `Jornada ${s.jornada}/3 · carga ${s.pinonesLlevados} · lof ${s.pinonesEntregados}/28 · reloj ${Math.ceil(ms / 1000)} s · permisos ${s.permisosPedidos} · directas ${s.tomasDirectas} · pewenes: ${bosque}`;
+        `Jornada ${s.jornada}/3 · newen ${Math.round(s.newen)} · equilibrio ${Math.round(s.equilibrio)} · carga ${s.pinonesLlevados} · lof ${s.pinonesEntregados}/28 · reloj ${Math.ceil(ms / 1000)} s · permisos ${s.permisosPedidos} · directas ${s.tomasDirectas} · pewenes: ${bosque}`;
     }
 
     document.querySelector('#cargar').onclick = () => {
@@ -111,6 +113,23 @@
     document.querySelector('#dialogo-kimche').onclick = () => juego.events.emit('dialogo:npc', { rol: 'Kimche' });
     document.querySelector('#ver-prologo').onclick = () => juego.scene.start('Prologo');
     document.querySelector('#ver-final').onclick = () => juego.scene.start('Final');
+    document.querySelector('#rescate').onclick = () => {
+      const escena = escenaActiva();
+      const estado = leerEstado(escena.game);
+      estado.newen = 0; estado.pinonesLlevados = 10; guardarEstado(escena.game, estado);
+      escena.game.events.emit('hud:actualizar', { ...estado });
+      escena.game.events.emit('agua:cambio', { dentro: true });
+      escena.jugador.setPosition(escena.jugador.x + 4, escena.jugador.y);
+      escena.events.emit('update', escena.time.now, 16);
+      mostrarEstado(escena);
+    };
+    document.querySelector('#final-bueno').onclick = () => {
+      const escena = escenaActiva();
+      const estado = leerEstado(escena.game);
+      estado.pinonesEntregados = 28; estado.equilibrio = 70;
+      estado.permisosPedidos = 4; estado.tomasDirectas = 1;
+      guardarEstado(escena.game, estado); juego.scene.start('Final');
+    };
     document.querySelector('#reiniciar').onclick = () => location.reload();
   </script>
 </body>

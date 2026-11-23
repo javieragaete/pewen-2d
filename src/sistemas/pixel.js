@@ -17,3 +17,14 @@ export function crearTexturaDesdeMatriz(escena, clave, filas) {
   tex.refresh();
 }
 
+// Iconos pequeños del HUD, definidos con la misma matriz y paleta que los sprites.
+export function crearIconosHUD(escena) {
+  const iconos = {
+    'hud-newen': ['..RR..RR..', '.RRRRRRRR.', 'RRRRRRRRRR', 'RRRRRRRRRR', '.RRRRRRRR.', '..RRRRRR..', '...RRRR...', '....RR....'],
+    'hud-equilibrio': ['....V.....', '...VVV....', '..VVVVV...', '.VVVVVVV..', 'VVVVVVVVV.', '..VVVVV...', '...VVV....', '....V.....'],
+    'hud-pinon': ['....B.....', '...BWB....', '..BWoWB...', '.BWoooWB..', '..BWoWB...', '...BWB....', '....B.....', '....B.....'],
+    'hud-reloj': ['...NNN....', '..NKKKN...', '.NK...KN..', 'NK.....KN.', 'NK..K..KN.', 'NK..K..KN.', '.NK.KKN...', '..NNNN....']
+  };
+  for (const [clave, filas] of Object.entries(iconos)) crearTexturaDesdeMatriz(escena, clave, filas);
+}
+

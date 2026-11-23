@@ -15,6 +15,7 @@ export class Recoleccion {
     this.teclas = escena.input.keyboard.addKeys({ permiso: 'ONE', directa: 'TWO' });
     this.crearInterfaz();
     escena.events.on('update', this.actualizar, this);
+    escena.game.events.on('jornada:fin', this.limpiarPinonesJornada, this);
     escena.events.on('shutdown', this.destruir, this);
     pewenes.conectarRecoleccion(this);
   }
@@ -149,8 +150,18 @@ export class Recoleccion {
     this.pinonesSuelo = this.pinonesSuelo.filter(pinon => !pinon.vencido);
   }
 
+  limpiarPinonesJornada() {
+    for (const pinon of this.pinonesSuelo) {
+      pinon.vencido = true;
+      pinon.expira?.remove();
+      pinon.visual.destroy();
+    }
+    this.pinonesSuelo = [];
+  }
+
   destruir() {
     this.escena.events.off('update', this.actualizar, this);
+    this.escena.game.events.off('jornada:fin', this.limpiarPinonesJornada, this);
     this.aviso?.remove();
     this.pinonesSuelo.forEach(pinon => { pinon.expira?.remove(); pinon.visual.destroy(); });
     this.pinonesSuelo = [];

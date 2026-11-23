@@ -1,4 +1,5 @@
 import { AJUSTES_SISTEMAS as A } from '../ajustes/sistemas.js';
+import { crearIconosHUD } from './pixel.js';
 
 const P = globalThis.Phaser;
 
@@ -19,10 +20,19 @@ export class HudSistemas {
   }
 
   crearVista() {
+    crearIconosHUD(this.escena);
     this.marco = this.escena.add.graphics().setScrollFactor(0).setDepth(9_000);
-    this.texto = this.escena.add.text(20, 16, '', {
-      fontFamily: 'Consolas, "Courier New", monospace', fontSize: '15px',
-      color: '#e6e7d8', lineSpacing: 5
+    this.iconos = [
+      this.escena.add.image(22, 20, 'hud-newen').setOrigin(0).setScale(3),
+      this.escena.add.image(190, 20, 'hud-equilibrio').setOrigin(0).setScale(3),
+      this.escena.add.image(354, 20, 'hud-pinon').setOrigin(0).setScale(3),
+      this.escena.add.image(474, 20, 'hud-reloj').setOrigin(0).setScale(3)
+    ].map(icono => icono.setScrollFactor(0).setDepth(9_001));
+    const estilo = { fontFamily: 'Consolas, "Courier New", monospace', fontSize: '15px', color: '#e6e7d8' };
+    this.valores = [58, 222, 386, 505].map(x => this.escena.add.text(x, 22, '', estilo)
+      .setScrollFactor(0).setDepth(9_001));
+    this.ayuda = this.escena.add.text(24, 52, '', {
+      fontFamily: 'Consolas, "Courier New", monospace', fontSize: '14px', color: '#a9c4cc'
     }).setScrollFactor(0).setDepth(9_001);
   }
 
@@ -53,18 +63,22 @@ export class HudSistemas {
   dibujar() {
     const g = this.marco;
     g.clear();
-    g.fillStyle(0x202522, 0.95).fillRect(12, 12, 500, 82);
-    g.lineStyle(2, 0x14181a, 1).strokeRect(12, 12, 500, 82);
-    const barra = (x, y, valor, color) => {
-      g.fillStyle(0x344c3b).fillRect(x, y, 110, 12);
-      g.fillStyle(color).fillRect(x + 2, y + 2, 106 * Math.max(0, Math.min(100, valor)) / 100, 8);
+    g.fillStyle(0x202522, 0.96).fillRect(12, 12, 570, 76);
+    g.lineStyle(2, 0x14181a, 1).strokeRect(12, 12, 570, 76);
+    const barra = (x, valor, color) => {
+      g.fillStyle(0x344c3b).fillRect(x, 23, 76, 12);
+      g.fillStyle(color).fillRect(x + 2, 25, 72 * Math.max(0, Math.min(100, valor)) / 100, 8);
     };
-    barra(62, 25, this.estado.newen, 0x9b3a3a);
-    barra(222, 25, this.estado.equilibrio, 0x70905a);
+    barra(86, this.estado.newen, 0x9b3a3a);
+    barra(254, this.estado.equilibrio, 0x70905a);
     const seg = Math.max(0, Math.ceil(this.tiempoMs / 1000));
     const tiempo = `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}`;
     const lineaFinal = this.listoParaCerrar() ? '\n[T] Terminar jornada' : '';
-    this.texto.setText(`✦  ${this.estado.newen}   ◉  ${this.estado.equilibrio}   ●  ${this.estado.pinonesLlevados}/${this.estado.pinonesEntregados}/${A.metaPinones}   ◷  ${tiempo}${lineaFinal}`);
+    this.valores[0].setText(Math.round(this.estado.newen));
+    this.valores[1].setText(Math.round(this.estado.equilibrio));
+    this.valores[2].setText(`${this.estado.pinonesLlevados}/${this.estado.pinonesEntregados}/${A.metaPinones}`);
+    this.valores[3].setText(tiempo);
+    this.ayuda.setText(lineaFinal.trim());
   }
 
   actualizar() {
@@ -78,6 +92,8 @@ export class HudSistemas {
     this.escena.game.events.off('hud:reloj', this.actualizarReloj, this);
     this.escena.game.events.off('jornada:inicio', this.inicioJornada, this);
     this.escena.events.off('update', this.actualizar, this);
+    this.iconos.forEach(icono => icono.destroy());
+    this.marco.destroy(); this.valores.forEach(valor => valor.destroy()); this.ayuda.destroy();
   }
 }
 
