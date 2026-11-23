@@ -23,9 +23,10 @@ export class Hud {
     ]).setScrollFactor(0).setDepth(CONFIG.mundo.alto + 4);
   }
 
-  actualizar(newen, equilibrio, pinones, segundos) {
+  actualizar(newen, equilibrio, pinones, segundos, totalLof = 0) {
     const minutos = Math.floor(segundos / 60);
-    this.pinones.setText(`${pinones}/${partida.metaPinones}`);
+    // Primer valor: carga que lleva el personaje. Después del separador: total/meta del lof.
+    this.pinones.setText(`${pinones}|${totalLof}/${partida.metaPinones}`);
     this.reloj.setText(`${minutos}:${String(segundos % 60).padStart(2, '0')}`);
     this.barras.clear();
     const barra = (x, valor, tono) => {
