@@ -54,7 +54,10 @@ function adulto(variante, estado) {
   const centro = variante === 'a' ? 31 : 33;
   const seco = estado === 'seco';
   tronco(datos, centro, 21, variante === 'a' ? 7 : 8);
-  COPAS[variante].forEach(([x, y], i) => {
+  COPAS[variante].forEach(([x, yOriginal], i) => {
+    // Reparte las ramas por la copa y el tronco superior para que la adulta
+    // se lea como araucaria completa, no como un tronco largo con un penacho.
+    const y = Math.round(18 + (yOriginal - 15) * 5.2);
     const separacion = Math.abs(x - centro);
     const punta = seco ? y + Math.floor(separacion / 3) + 7 : y;
     const arranque = Math.max(22, y + Math.floor(separacion / 5) + 6);

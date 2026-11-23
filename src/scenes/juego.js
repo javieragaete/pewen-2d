@@ -4,12 +4,15 @@ import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
 import { ESCALA_PIXEL, dibujarMarcoPixel, registrarSpritesPixel } from '../sprites.js';
 import { GestorJornadas } from '../narrativa.js';
+import { PEWENES as TEXTURAS_PEWEN } from '../arte/pewen.js';
+import { registrarMatrices } from '../arte/pixel.js';
 
 const { pantalla, mundo, jugador, camara, mapa, partida, paletaPixel } = CONFIG;
 const Phaser = globalThis.Phaser;
 const mono = 'Consolas, "Courier New", monospace';
 const color = clave => Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
 const URL_TEMA = new URL('../../assets/audio/tema_mapuche_tribal/tema.wav', import.meta.url).href;
+const ESCALA_ARBOL_NATIVO = 3;
 
 export class EscenaJuego extends Phaser.Scene {
   constructor() {
@@ -33,6 +36,7 @@ export class EscenaJuego extends Phaser.Scene {
   create() {
     this.iniciarMusicaDeFondo();
     registrarSpritesPixel(this);
+    registrarMatrices(this, TEXTURAS_PEWEN);
     this.physics.world.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.dibujarMapa();
     this.crearObstaculosNaturales();
@@ -115,6 +119,7 @@ export class EscenaJuego extends Phaser.Scene {
       newen: this.newen,
       equilibrio: this.equilibrio,
       pinones: this.recoleccion.pinones,
+      distribucionPewenes: this.recoleccion.pewenes.map(({ x, y, tipo }) => ({ x, y, tipo })),
       recolectados: this.recoleccion.pewenes.map(pewen => pewen.recolectado)
     };
     try {
@@ -134,6 +139,7 @@ export class EscenaJuego extends Phaser.Scene {
       this.newen = datos.newen;
       this.equilibrio = datos.equilibrio;
       this.recoleccion.pinones = datos.pinones;
+      this.recoleccion.restaurarDistribucion(datos.distribucionPewenes);
       this.recoleccion.pewenes.forEach((pewen, i) => {
         pewen.recolectado = Boolean(datos.recolectados?.[i]);
         pewen.pinones.setVisible(!pewen.recolectado);
@@ -269,6 +275,7 @@ export class EscenaJuego extends Phaser.Scene {
 
     const azar = new Phaser.Math.RandomDataGenerator([String(mapa.semilla)]);
     const decoracion = mapa.decoracion;
+    this.decoracionesMapa = [];
     const distanciaSegmento = (x, y, a, b) => {
       const dx = b[0] - a[0];
       const dy = b[1] - a[1];
@@ -305,6 +312,7 @@ export class EscenaJuego extends Phaser.Scene {
       if (matas.length !== decoracion.matasPorManchon) continue;
       matas.forEach(([x, y], i) => {
         this.add.image(x, y, 'pasto-' + (i % 3)).setOrigin(0.5, 1).setScale(2).setDepth(y - 1);
+        this.decoracionesMapa.push({ x, y, radio: 10 });
       });
       manchonesPlantados++;
     }
@@ -318,8 +326,10 @@ export class EscenaJuego extends Phaser.Scene {
       rocasPuestas.push([x, y]);
       const indice = rocasPuestas.length - 1;
       this.add.image(x, y, 'roca-' + (indice % 2)).setOrigin(0.5, 1).setScale(2).setDepth(y);
+      this.decoracionesMapa.push({ x, y, radio: 15 });
       if (indice % 3 === 0) {
         this.add.image(x + 14, y + 3, 'arbusto').setOrigin(0.5, 1).setScale(2).setDepth(y + 1);
+        this.decoracionesMapa.push({ x: x + 14, y: y + 3, radio: 20 });
       }
       // Cuatro pares visuales; los otros cuatro elementos quedan aislados.
       if (indice < 8 && indice % 2 === 0 && rocasPuestas.length < decoracion.piedras) {
@@ -328,12 +338,14 @@ export class EscenaJuego extends Phaser.Scene {
         if (despejado(parX, parY)) {
           rocasPuestas.push([parX, parY]);
           this.add.image(parX, parY, 'roca-1').setOrigin(0.5, 1).setScale(2).setDepth(parY);
+          this.decoracionesMapa.push({ x: parX, y: parY, radio: 15 });
         }
       }
     }
     mapa.arboles.forEach(([x, y], indice) => {
       this.add.image(x, y, 'arbol-nativo-' + (indice % 2))
-        .setOrigin(0.5, 1).setScale(ESCALA_PIXEL).setDepth(y);
+        .setOrigin(0.5, 1).setScale(ESCALA_ARBOL_NATIVO).setDepth(y);
+      this.decoracionesMapa.push({ x, y, radio: 50 });
     });
   }
 
