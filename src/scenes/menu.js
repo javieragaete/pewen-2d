@@ -14,6 +14,14 @@ export class EscenaMenu extends Phaser.Scene {
     super('Menu');
   }
 
+  preload() {
+    this.load.audio('sfx-boton-enfocar', new URL('../../assets/audio/efectos/boton-enfocar.wav', import.meta.url).href);
+    this.load.audio('sfx-boton-activar', new URL('../../assets/audio/efectos/boton-activar.wav', import.meta.url).href);
+    this.load.on('loaderror', archivo => {
+      if (archivo.key.startsWith('sfx-boton-')) console.error('No se pudo cargar el sonido:', archivo.src);
+    });
+  }
+
   create() {
     registrarSpritesPixel(this);
     aplicarIluminacion(this);
@@ -155,7 +163,7 @@ export class EscenaMenu extends Phaser.Scene {
         .on('pointerover', () => this.seleccionar(indice, true))
         .on('pointerdown', () => {
           this.seleccionar(indice);
-          this.reproducirSonidoBoton('confirmar', true);
+          this.reproducirSonidoBoton('activar', true);
           accion();
         });
     }
@@ -164,7 +172,7 @@ export class EscenaMenu extends Phaser.Scene {
   seleccionar(indice, conSonido = false) {
     const cambio = this.seleccion !== indice;
     this.seleccion = indice;
-    if (cambio && conSonido) this.reproducirSonidoBoton('mover');
+    if (cambio && conSonido) this.reproducirSonidoBoton('enfocar');
     this.opciones.forEach(({ fondo, indicador, accion, rotulo }, i) => {
       const activa = i === indice;
       const normal = this.pantallaSecundaria ? 'azul' : paletaMenu.opciones[i];
@@ -177,29 +185,18 @@ export class EscenaMenu extends Phaser.Scene {
   }
 
   reproducirSonidoBoton(tipo, gestoUsuario = false) {
-    const contexto = this.sound.context;
-    if (!contexto?.createOscillator) return;
+    const opciones = {
+      enfocar: { clave: 'sfx-boton-enfocar', volumen: 0.75 },
+      activar: { clave: 'sfx-boton-activar', volumen: 0.85 }
+    }[tipo];
+    if (!opciones || !this.cache.audio.exists(opciones.clave)) return;
 
-    const sonar = () => {
-      const ahora = contexto.currentTime;
-      const confirmar = tipo === 'confirmar';
-      const duracion = confirmar ? 0.095 : 0.045;
-      const tono = contexto.createOscillator();
-      const volumen = contexto.createGain();
-      tono.type = 'sine';
-      tono.frequency.setValueAtTime(confirmar ? 440 : 620, ahora);
-      if (confirmar) tono.frequency.exponentialRampToValueAtTime(660, ahora + duracion);
-      volumen.gain.setValueAtTime(0.0001, ahora);
-      volumen.gain.exponentialRampToValueAtTime(confirmar ? 0.055 : 0.025, ahora + 0.008);
-      volumen.gain.exponentialRampToValueAtTime(0.0001, ahora + duracion);
-      tono.connect(volumen);
-      volumen.connect(this.sound.masterVolumeNode || contexto.destination);
-      tono.start(ahora);
-      tono.stop(ahora + duracion);
-    };
-
-    if (contexto.state === 'running') sonar();
-    else if (gestoUsuario && contexto.state === 'suspended') contexto.resume().then(sonar).catch(() => {});
+    const sonar = () => this.sound.play(opciones.clave, { volume: opciones.volumen });
+    if (this.sound.locked) {
+      if (gestoUsuario) this.sound.once(Phaser.Sound.Events.UNLOCKED, sonar);
+      return;
+    }
+    sonar();
   }
 
   moverSeleccion(paso) {
@@ -218,7 +215,7 @@ export class EscenaMenu extends Phaser.Scene {
     const abajo = [DOWN, S].map(pulsada).some(Boolean);
     const elegir = [ENTER, SPACE].map(pulsada).some(Boolean);
     if (pulsada(ESC) && this.pantallaSecundaria) {
-      this.reproducirSonidoBoton('confirmar', true);
+      this.reproducirSonidoBoton('activar', true);
       this.mostrarPrincipal();
     }
     else if (this.pantallaSecundaria && this.paginasAyuda && (pulsada(this.teclas.LEFT) || pulsada(this.teclas.A))) {
@@ -230,7 +227,7 @@ export class EscenaMenu extends Phaser.Scene {
       this.dibujarPaginaAyuda();
     }
     else if (elegir) {
-      this.reproducirSonidoBoton('confirmar', true);
+      this.reproducirSonidoBoton('activar', true);
       this.opciones[this.seleccion].accion();
     }
     else if (arriba || abajo) this.moverSeleccion(arriba ? -1 : 1);
