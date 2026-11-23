@@ -45,22 +45,22 @@ function hojas(datos, x, y, radio, altura, tonos, semilla) {
 }
 
 const COPAS = {
-  a: [[7, 44], [12, 33], [17, 24], [26, 19], [33, 15], [43, 19], [52, 28], [57, 39]],
-  b: [[9, 34], [14, 23], [22, 16], [31, 12], [42, 16], [51, 23], [57, 29], [57, 43]]
+  a: [[8, 36], [11, 24], [19, 19], [29, 15], [38, 16], [47, 20], [55, 23], [57, 35]],
+  b: [[8, 29], [13, 19], [23, 15], [33, 17], [43, 20], [53, 27], [56, 39], [16, 39]]
 };
 
 function adulto(variante, estado) {
   const datos = matriz(64, 224);
   const centro = variante === 'a' ? 31 : 33;
   const seco = estado === 'seco';
-  tronco(datos, centro, 16, variante === 'a' ? 7 : 8);
+  tronco(datos, centro, 21, variante === 'a' ? 7 : 8);
   COPAS[variante].forEach(([x, y], i) => {
     const separacion = Math.abs(x - centro);
     const punta = seco ? y + Math.floor(separacion / 3) + 7 : y;
-    const arranque = 26 + Math.floor(separacion * 1.25);
-    rama(datos, [[centro, arranque], [Math.round((centro + x) / 2), punta + (seco ? -4 : 4)], [x, punta]], seco ? 2 : 3, 'q');
+    const arranque = Math.max(22, y + Math.floor(separacion / 5) + 6);
+    rama(datos, [[centro, arranque], [Math.round((centro + x) / 2), punta + (seco ? -5 : 2)], [x, punta]], seco ? 2 : 3, 'q');
     if (!seco || i % 3 === 0) {
-      hojas(datos, x, punta + 1, seco ? 4 : estado === 'sano' ? 8 : 7, seco ? 4 : 9 + i % 3, TONOS[estado], i * 17);
+      hojas(datos, x, punta + 1, seco ? 4 : estado === 'sano' ? 8 : 7, seco ? 4 : 6 + i % 3, TONOS[estado], i * 17);
     }
   });
   return filas(contorno(datos));
