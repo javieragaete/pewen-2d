@@ -26,6 +26,10 @@
       <button id="permiso">Elegir permiso</button>
       <button id="directa">Elegir toma directa</button>
       <button id="recoger">Recoger piñones caídos</button>
+      <button id="dialogo-lonko">Hablar con Lonko</button>
+      <button id="dialogo-kimche">Hablar con Kimche</button>
+      <button id="ver-prologo">Probar prólogo</button>
+      <button id="ver-final">Probar final</button>
       <button id="reiniciar">Reiniciar prueba</button>
     </nav>
     <div id="juego" aria-label="Escena de prueba de sistemas"></div>
@@ -34,9 +38,11 @@
   <script src="../vendor/phaser.min.js"></script>
   <script type="module">
     import { iniciarSistemas, leerEstado, guardarEstado } from '../src/sistemas/estado.js';
+    import { EscenaPrologo } from '../src/scenes/prologo.js';
+    import { EscenaFinal } from '../src/scenes/final.js';
 
     class MundoSimulado extends Phaser.Scene {
-      constructor() { super('PruebaSistemas'); }
+      constructor() { super('Mundo'); }
       create() {
         this.add.rectangle(640, 540, 1280, 360, 0x4a6845);
         this.add.rectangle(640, 690, 1280, 60, 0x92704b);
@@ -55,9 +61,9 @@
 
     const juego = new Phaser.Game({
       type: Phaser.AUTO, parent: 'juego', width: 1280, height: 720,
-      pixelArt: true, roundPixels: true, scene: [MundoSimulado]
+      pixelArt: true, roundPixels: true, scene: [MundoSimulado, EscenaPrologo, EscenaFinal]
     });
-    const escenaActiva = () => juego.scene.getScene('PruebaSistemas');
+    const escenaActiva = () => juego.scene.getScene('Mundo');
     function mostrarEstado(escena) {
       const s = leerEstado(escena.game);
       const ms = escena.sistemas?.tiempoRestante ?? 120000;
@@ -101,6 +107,10 @@
       }
       mostrarEstado(escena);
     };
+    document.querySelector('#dialogo-lonko').onclick = () => juego.events.emit('dialogo:npc', { rol: 'Lonko' });
+    document.querySelector('#dialogo-kimche').onclick = () => juego.events.emit('dialogo:npc', { rol: 'Kimche' });
+    document.querySelector('#ver-prologo').onclick = () => juego.scene.start('Prologo');
+    document.querySelector('#ver-final').onclick = () => juego.scene.start('Final');
     document.querySelector('#reiniciar').onclick = () => location.reload();
   </script>
 </body>

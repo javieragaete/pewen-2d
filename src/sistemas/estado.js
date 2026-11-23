@@ -3,6 +3,7 @@ import { GestorJornadas } from './jornadas.js';
 import { Pewenes } from './pewenes.js';
 import { Recoleccion } from './recoleccion.js';
 import { HudSistemas } from './hud.js';
+import { Dialogo } from '../historia/dialogo.js';
 
 const CLAVE_ESTADO = 'estado';
 
@@ -37,9 +38,11 @@ export function iniciarSistemas(escena) {
     guardarEstado(destino.game, estado);
     const pewenes = new Pewenes(destino, estado);
     const recoleccion = new Recoleccion(destino, estado, pewenes);
+    const dialogo = new Dialogo(destino, estado);
     const jornadas = new GestorJornadas(destino);
+    dialogo.inicioJornada({ n: estado.jornada });
     const hud = new HudSistemas(destino, estado);
-    destino.sistemas = { estado, pewenes, recoleccion, jornadas, hud };
+    destino.sistemas = { estado, pewenes, recoleccion, dialogo, jornadas, hud };
   };
 
   if (escena.anclas) conectar(escena);

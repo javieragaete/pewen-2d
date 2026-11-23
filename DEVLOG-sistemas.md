@@ -45,3 +45,17 @@
 - Prueba aislada abrió con Phaser y dos pewenes de reemplazo; la consola del navegador quedó sin errores ni advertencias.
 - Se verificó el HUD en el canvas. La superposición inicial de botones de prueba ocultaba la esquina superior; se corrigió el layout del arnés para dejar el panel visible.
 
+## Etapa 4 — Diálogos, prólogo y finales
+
+- Centralizados los textos en `src/historia/narrativa.js`, con marcadores para meta, total entregado y cantidad faltante.
+- Añadido el sistema de diálogo: caja inferior, texto progresivo, avance con E/Enter/espacio, cierre de movimiento y pausa del reloj. La primera conversación con Kimche empieza después de la tarjeta de jornada 1; Lonko y los diálogos posteriores quedan opcionales vía `dialogo:npc`.
+- Añadidas las escenas exportadas `Prologo` y `Final`. El prólogo se puede saltar con Esc; el final evalúa meta, equilibrio y proporción de permisos, y ofrece R para reiniciar y M para volver al menú.
+- El gestor de jornadas pasa a `Final` al concluir la tercera jornada. Ampliada la página aislada con controles para hablar y probar las escenas.
+
+### Verificación
+
+- Los módulos de historia, escenas y estado pasaron `node --check`.
+- En el navegador local se vio el diálogo automático de Kimche y su segundo texto; se abrió la charla opcional de Lonko.
+- Se probaron el prólogo centrado y su salida con Esc, el final por meta incumplida y el reinicio con R.
+- No hubo errores ni advertencias en consola.
+
