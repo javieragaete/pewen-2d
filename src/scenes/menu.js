@@ -1,5 +1,5 @@
 import { CONFIG } from '../config.js';
-import { registrarSpritesPixel } from '../sprites.js';
+import { ESCALA_PIXEL, dibujarMarcoPixel, registrarSpritesPixel } from '../sprites.js';
 
 const Phaser = globalThis.Phaser;
 const { pantalla, menu, paletaPixel } = CONFIG;
@@ -28,20 +28,18 @@ export class EscenaMenu extends Phaser.Scene {
       .setOrigin(0).setDepth(-10);
     suelo.tileScaleX = 2;
     suelo.tileScaleY = 2;
-    [[-20, 510, 4, 0], [260, 520, 4, 1], [540, 510, 4, 0], [820, 520, 4, 1], [1100, 510, 4, 0]]
-      .forEach(([x, y, escala, variante]) => {
-        this.add.image(x, y, 'montana-' + variante).setOrigin(0, 1).setScale(escala).setDepth(-15);
+    [[-55, 510, 0], [385, 510, 1], [825, 510, 0]]
+      .forEach(([x, y, variante]) => {
+        this.add.image(x, y, 'montana-' + variante).setOrigin(0, 1).setScale(ESCALA_PIXEL).setDepth(-15);
       });
-    [[650, 658], [815, 690], [1010, 666], [1195, 700], [870, 622], [1070, 610]]
+    [[700, 680], [900, 700], [1080, 670], [1210, 710]]
       .forEach(([x, y], indice) => {
         this.add.image(x, y, 'arbol-nativo-' + (indice % 2))
-          .setOrigin(0.5, 1).setScale(3).setDepth(-5 + indice);
+          .setOrigin(0.5, 1).setScale(ESCALA_PIXEL).setDepth(-5 + indice);
       });
 
     const panel = this.add.graphics();
     panel.fillStyle(color('tinta')).fillRect(0, 0, 560, alto);
-    panel.fillStyle(color('rojo')).fillRect(0, 0, 6, alto);
-    panel.fillStyle(color('madera')).fillRect(12, 12, 2, alto - 24);
   }
 
   texto(x, y, contenido, size, tint = paletaPixel.nieve) {
@@ -74,25 +72,20 @@ export class EscenaMenu extends Phaser.Scene {
     this.contenido.removeAll(true);
     this.opciones = [];
     this.contenido.add([
-      this.texto(64, 68, titulo, 72).setFontStyle('bold'),
-      this.texto(69, 164, subtitulo, 23, paletaPixel.musgo)
+      this.texto(64, 68, titulo, 48).setFontStyle('bold'),
+      this.texto(69, 132, subtitulo, 20, paletaPixel.musgo)
     ]);
   }
 
   dibujarOpcion(fondo, tono) {
-    fondo.clear();
-    fondo.fillStyle(color('tinta')).fillRect(0, 0, 432, 60);
-    fondo.fillStyle(color(tono)).fillRect(0, 0, 432, 4);
-    fondo.fillRect(0, 56, 432, 4).fillRect(0, 0, 4, 60).fillRect(428, 0, 4, 60);
-    fondo.fillStyle(color('madera')).fillRect(8, 8, 416, 2);
-    fondo.fillRect(8, 50, 416, 2);
+    dibujarMarcoPixel(fondo, 0, 0, 432, 60, color(tono), color('bosque'));
   }
 
   agregarOpcion(etiqueta, accion, detalle) {
     const indice = this.opciones.length;
-    const y = 235 + indice * 74;
+    const y = 205 + indice * 72;
     const fondo = this.add.graphics({ x: 64, y });
-    this.dibujarOpcion(fondo, accion ? 'bosqueOscuro' : 'rocaOscura');
+    this.dibujarOpcion(fondo, accion ? 'tinta' : 'rocaOscura');
     const indicador = this.texto(80, y + 12, '>', 25, paletaPixel.musgo).setVisible(false);
     const rotulo = this.texto(112, y + (detalle ? 4 : 12), etiqueta, 25,
       accion ? paletaPixel.nieve : paletaPixel.roca);
@@ -113,7 +106,7 @@ export class EscenaMenu extends Phaser.Scene {
     this.seleccion = indice;
     this.opciones.forEach(({ fondo, indicador, accion }, i) => {
       const activa = i === indice;
-      this.dibujarOpcion(fondo, activa ? 'bosque' : accion ? 'bosqueOscuro' : 'rocaOscura');
+      this.dibujarOpcion(fondo, activa ? 'bosqueOscuro' : accion ? 'tinta' : 'rocaOscura');
       indicador.setVisible(activa);
     });
   }
