@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba de la ruka</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#171a18;color:#eee;font:14px system-ui,sans-serif;display:grid;grid-template-columns:minmax(0,1280px) 300px;gap:12px;padding:12px;justify-content:center}
+    #juego{width:min(100%,1280px);aspect-ratio:16/9;overflow:hidden}canvas{width:100%;height:100%;image-rendering:pixelated}aside{border:1px solid #59635b;background:#222823;padding:12px;max-height:calc(100vh - 24px);overflow:auto}h1{font-size:18px;margin:0 0 8px}#estado{color:#d2bd7a;margin-bottom:10px}#eventos{white-space:pre-wrap;color:#c8d8bf;font:12px ui-monospace,monospace}.error{color:#ff9a84}
+    @media(max-width:1050px){body{grid-template-columns:1fr}aside{max-height:220px}}
+  </style>
+</head>
+<body>
+  <main id="juego"></main>
+  <aside><h1>Interior · prueba C</h1><div id="estado">Iniciando escena con datos simulados…</div><div id="eventos"></div></aside>
+  <script src="../vendor/phaser.min.js"></script>
+  <script type="module">
+    import Interior from '../src/scenes/interior.js';
+    const estado=document.querySelector('#estado'), salida=document.querySelector('#eventos');
+    if(!window.Phaser){estado.className='error';estado.textContent='Falta ../vendor/phaser.min.js. Esta prueba usa la copia local de Phaser 3.90.0 del proyecto.';throw new Error(estado.textContent);}
+    const juego=new Phaser.Game({type:Phaser.AUTO,parent:'juego',width:1280,height:720,backgroundColor:'#171b18',pixelArt:true,roundPixels:true,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Interior]});
+    const nombres=['entrega:pinones','dialogo:npc'];
+    for(const nombre of nombres) juego.events.on(nombre,(dato)=>{const hora=new Date().toLocaleTimeString('es-CL');salida.textContent=`${hora}  ${nombre}${dato?`  ${JSON.stringify(dato)}`:''}\n`+salida.textContent;});
+    juego.events.emit('jugador:bloqueado',{bloqueado:false});
+    juego.scene.start('Interior',{pinonesLlevados:7});
+    estado.textContent='Datos simulados: 7 piñones. Usa A/D o flechas y E; acerca el jugador a un objeto.';
+    window.addEventListener('error',e=>{estado.className='error';estado.textContent='Error: '+e.message;});
+  </script>
+</body>
+</html>
