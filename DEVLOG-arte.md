@@ -9,3 +9,8 @@
 
 - Dibujé dos adultos con copas distintas y un joven con ramas bajas. Cada silueta tiene estados sano, normal y seco. El tronco adulto ocupa más de dos tercios de la altura y tiene corteza anillada.
 - Revisé las 25 texturas de la galería a ×3. Las dimensiones de árboles y piñones coinciden con el contrato y el contorno separa la copa de los tres fondos. Phaser mostró la galería sin errores.
+
+## Etapa 3 · Terreno y naturaleza
+
+- Preparé 13 tiles y 13 elementos de apoyo. El agua usa dos cuadros sin marco por baldosa y tiene un par aparte con espuma en la superficie.
+- La galería mostró las 51 texturas con sus claves. Verifiqué que los tiles miden 16 × 16 y los árboles nativos 48 × 64. Revisé el contraste de suelo y agua sobre los tres fondos.
