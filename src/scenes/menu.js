@@ -1,6 +1,7 @@
 import { CONFIG } from '../config.js';
 import { textoPixel } from '../tipografia.js';
-import { ESCALA_PIXEL, registrarSpritesPixel } from '../sprites.js';
+import { registrarSpritesPixel } from '../sprites.js';
+import { dibujarFondoMenu } from '../paisaje-menu.js';
 
 const Phaser = globalThis.Phaser;
 const { pantalla, menu, paletaPixel } = CONFIG;
@@ -22,25 +23,10 @@ export class EscenaMenu extends Phaser.Scene {
 
   dibujarPaisaje() {
     const { ancho, alto } = pantalla;
-    const cielo = this.add.tileSprite(0, 0, ancho, alto, 'tile-cielo').setOrigin(0).setDepth(-20);
-    cielo.tileScaleX = 2;
-    cielo.tileScaleY = 2;
-    const suelo = this.add.tileSprite(0, 490, ancho, alto - 490, 'tile-suelo-bosque-normal')
-      .setOrigin(0).setDepth(-10);
-    suelo.tileScaleX = 2;
-    suelo.tileScaleY = 2;
-    [[-55, 510, 0], [385, 510, 1], [825, 510, 0]]
-      .forEach(([x, y, variante]) => {
-        this.add.image(x, y, 'montana-' + variante).setOrigin(0, 1).setScale(ESCALA_PIXEL).setDepth(-15);
-      });
-    [[700, 680], [900, 700], [1080, 670], [1210, 710]]
-      .forEach(([x, y], indice) => {
-        this.add.image(x, y, 'arbol-nativo-' + (indice % 2))
-          .setOrigin(0.5, 1).setScale(ESCALA_PIXEL).setDepth(-5 + indice);
-      });
-
+    dibujarFondoMenu(this, ancho, alto);
     const panel = this.add.graphics();
     panel.fillStyle(color('tinta')).fillRect(0, 0, 560, alto);
+    panel.fillStyle(paletaMenu.amarillo.sombra).fillRect(556, 0, 4, alto);
   }
 
   texto(x, y, contenido, size, tint = paletaPixel.nieve) {
