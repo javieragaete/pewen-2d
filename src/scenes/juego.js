@@ -1,6 +1,7 @@
 import { CONFIG } from '../config.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
+import { ESCALA_PIXEL, registrarSpritesPersonaje } from '../sprites.js';
 
 const { pantalla, mundo, jugador, camara, mapa, partida, colores: c } = CONFIG;
 const Phaser = globalThis.Phaser;
@@ -11,6 +12,7 @@ export class EscenaJuego extends Phaser.Scene {
   }
 
   create() {
+    registrarSpritesPersonaje(this);
     this.physics.world.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.dibujarMapa();
     this.crearRuka();
@@ -106,18 +108,30 @@ export class EscenaJuego extends Phaser.Scene {
   }
 
   crearJugador() {
-    const figura = this.add.graphics();
-    figura.fillStyle(c.sombra, 0.48).fillEllipse(3, 7, 34, 15);
-    figura.fillStyle(c.sombra).fillRoundedRect(-10, 0, 8, 9, 3).fillRoundedRect(2, 0, 8, 9, 3);
-    figura.fillStyle(c.rojo).fillRoundedRect(-13, -19, 26, 23, 7);
-    figura.fillStyle(c.piel).fillCircle(0, -25, 9);
-    figura.fillStyle(c.sombra).fillRoundedRect(-9, -35, 18, 9, 4);
-    this.personaje = this.add.container(jugador.inicioX, jugador.inicioY, [figura]);
+    this.figuraJugador = this.add.sprite(0, 0, 'persona-abajo-0')
+      .setOrigin(0.5, 0.5)
+      .setScale(ESCALA_PIXEL);
+    this.direccionJugador = 'abajo';
+    this.personaje = this.add.container(jugador.inicioX, jugador.inicioY, [this.figuraJugador]);
     this.personaje.setSize(jugador.radio * 2, jugador.radio * 2);
     this.physics.add.existing(this.personaje);
     this.personaje.body.setCircle(jugador.radio);
     this.personaje.body.setCollideWorldBounds(true);
     this.physics.add.collider(this.personaje, this.obstaculoRuka);
+  }
+
+  actualizarAnimacionJugador(x, y, tiempo, bloqueado) {
+    if (!bloqueado && (x !== 0 || y !== 0)) {
+      if (Math.abs(x) > Math.abs(y)) {
+        this.direccionJugador = x < 0 ? 'izquierda' : 'derecha';
+      } else {
+        this.direccionJugador = y < 0 ? 'arriba' : 'abajo';
+      }
+    }
+
+    const caminando = !bloqueado && (x !== 0 || y !== 0);
+    const cuadro = caminando ? Math.floor(tiempo / 180) % 2 : 0;
+    this.figuraJugador.setTexture(`persona-${this.direccionJugador}-${cuadro}`);
   }
 
   aplicarRecoleccion(efecto) {
@@ -146,7 +160,9 @@ export class EscenaJuego extends Phaser.Scene {
     const factor = this.newen === 0 ? partida.velocidadSinNewen : 1;
     // Normalizar mantiene la misma velocidad en línea recta y en diagonal.
     velocidad.set(x, y).normalize().scale(jugador.velocidad * factor);
-    if (this.recoleccion.ocupaAlJugador) velocidad.set(0, 0);
+    const bloqueado = this.recoleccion.ocupaAlJugador;
+    if (bloqueado) velocidad.set(0, 0);
+    this.actualizarAnimacionJugador(x, y, tiempo, bloqueado);
     personaje.setDepth(personaje.y);
 
     this.finJornada ??= tiempo + partida.duracionJornada * 1000;
