@@ -59,8 +59,10 @@ const PERSONAJE_IZQUIERDA = [
 export const SPRITES_PERSONAJE = {
   abajo: [PERSONAJE_ABAJO, PERSONAJE_ABAJO_PASO],
   arriba: [PERSONAJE_ARRIBA, PERSONAJE_ARRIBA_PASO],
-  izquierda: PERSONAJE_IZQUIERDA,
-  derecha: PERSONAJE_IZQUIERDA.map(matriz => matriz.map(fila => [...fila].reverse().join('')))
+  // La matriz base tiene la cara orientada a la derecha; la orientación
+  // izquierda debe usar su espejo para coincidir con el movimiento.
+  izquierda: PERSONAJE_IZQUIERDA.map(matriz => matriz.map(fila => [...fila].reverse().join(''))),
+  derecha: PERSONAJE_IZQUIERDA
 };
 
 function matrizVacia(ancho, alto) {

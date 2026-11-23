@@ -27,6 +27,8 @@ export class GestorJornadas {
     fondo.fillStyle(0x000000, 0.78).fillRect(0, 0, pantalla.ancho, pantalla.alto);
     const marco = this.escena.add.graphics();
     dibujarMarcoPixel(marco, 210, 238, 860, 244, color('tinta'), color('musgo'));
+    this.fondoTarjeta = fondo;
+    this.marcoTarjeta = marco;
     this.tituloTarjeta = this.escena.add.text(pantalla.ancho / 2, 284, '', {
       fontFamily: mono, fontSize: '30px', color: paletaPixel.nieve,
       align: 'center', fontStyle: 'bold'
@@ -58,15 +60,30 @@ export class GestorJornadas {
   }
 
   mostrarTarjeta(titulo, texto, duracion, tiempo, estado, alTerminar) {
+    const esInicio = estado === 'tarjetaInicio';
     this.estado = estado;
-    this.tarjeta.setVisible(true).setAlpha(estado === 'resumen' ? 0 : 1);
+    this.fondoTarjeta.setAlpha(esInicio ? 0.35 : 1);
+    this.marcoTarjeta.setVisible(!esInicio);
+    this.tituloTarjeta
+      .setPosition(pantalla.ancho / 2, esInicio ? pantalla.alto / 2 : 284)
+      .setScale(esInicio ? 0.88 : 1)
+      .setAlpha(esInicio ? 0 : 1)
+      .setFontSize(esInicio ? '38px' : '30px');
     this.tituloTarjeta.setText(titulo);
     this.textoTarjeta.setText(texto);
+    this.textoTarjeta.setVisible(Boolean(texto));
+    this.tarjeta.setVisible(true).setAlpha(estado === 'resumen' || esInicio ? 0 : 1);
     this.tarjetaFin = tiempo + duracion;
     this.salidaIniciada = false;
     this.alTerminarTarjeta = alTerminar;
     if (estado === 'resumen') {
       this.escena.tweens.add({ targets: this.tarjeta, alpha: 1, duration: jornadas.fundidoMs });
+    } else if (esInicio) {
+      this.escena.tweens.add({ targets: this.tarjeta, alpha: 1, duration: 360, ease: 'Sine.Out' });
+      this.escena.tweens.add({
+        targets: this.tituloTarjeta, alpha: 1, scale: 1, y: pantalla.alto / 2 - 8,
+        duration: 520, ease: 'Back.Out'
+      });
     }
   }
 

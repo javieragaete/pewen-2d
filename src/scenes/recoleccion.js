@@ -6,6 +6,19 @@ const { pantalla, mundo, mapa, recoleccion, paletaPixel } = CONFIG;
 const { Input, Math: Matematica } = globalThis.Phaser;
 const mono = 'Consolas, "Courier New", monospace';
 const color = clave => globalThis.Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
+const TIPOS_PEWEN = ['pewen-adulto-a', 'pewen-adulto-b', 'pewen-joven-a'];
+const DISTANCIA_CASA = 210;
+const DISTANCIA_PEWENES = 205;
+const escalaPewen = tipo => tipo.includes('joven') ? 0.9 : 1;
+
+function mezclar(elementos) {
+  const resultado = [...elementos];
+  for (let i = resultado.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [resultado[i], resultado[j]] = [resultado[j], resultado[i]];
+  }
+  return resultado;
+}
 
 import { volumenCanal } from '../settings.js';
 
@@ -15,7 +28,9 @@ export class Recoleccion {
     this.pinones = 0;
     this.alRecolectar = alRecolectar;
     this.estadoPewen = null;
-    this.pewenes = mapa.pewenes.map(([x, y]) => this.crearPewen(x, y));
+    const tiposIniciales = this.crearTiposPewen(mapa.pewenes.length);
+    this.pewenes = mapa.pewenes.map(([x, y], indice) => this.crearPewen(x, y, tiposIniciales[indice]));
+    this.reponerPinones();
     this.asignaciones = { interactuar: controles.interact[0], permiso: controles.permission[0], directa: controles.direct[0] };
     this.teclas = escena.input.keyboard.addKeys(this.asignaciones);
     this.ocupaAlJugador = false;
@@ -40,15 +55,15 @@ export class Recoleccion {
       .setScrollFactor(0).setDepth(mundo.alto + 3).setVisible(false);
   }
 
-  crearPewen(x, y) {
-    const arbol = this.escena.add.image(x, y, 'pewen-normal')
-      .setOrigin(0.5, 1).setScale(ESCALA_PIXEL).setDepth(y);
+  crearPewen(x, y, tipo) {
+    const arbol = this.escena.add.image(x, y, tipo + '-normal')
+      .setOrigin(0.5, 1).setScale(escalaPewen(tipo)).setDepth(y);
     const pinones = this.escena.add.container(x, y - 7, [
       this.escena.add.image(-16, 0, 'pinon').setScale(2),
       this.escena.add.image(0, -5, 'pinon').setScale(2),
       this.escena.add.image(16, 0, 'pinon').setScale(2)
     ]).setDepth(y + 1);
-    return { x, y, arbol, pinones, recolectado: false };
+    return { x, y, tipo, arbol, pinones, recolectado: false };
   }
 
   actualizarEquilibrio(equilibrio) {
@@ -56,15 +71,98 @@ export class Recoleccion {
     if (estado === this.estadoPewen) return;
     this.estadoPewen = estado;
     this.pewenes.forEach(pewen => {
-      pewen.arbol.setTexture('pewen-' + estado);
+      pewen.arbol.setTexture(pewen.tipo + '-' + estado);
+    });
+  }
+
+  crearTiposPewen(cantidad = mapa.pewenes.length) {
+    const tipos = mezclar(TIPOS_PEWEN);
+    while (tipos.length < cantidad) {
+      tipos.push(TIPOS_PEWEN[Math.floor(Math.random() * TIPOS_PEWEN.length)]);
+    }
+    if (this.pewenes?.length && this.pewenes.every((pewen, indice) => pewen.tipo === tipos[indice])) {
+      [tipos[0], tipos[1]] = [tipos[1], tipos[0]];
+    }
+    return tipos;
+  }
+
+  generarPosicionesPewen() {
+    const nuevas = [];
+    const anteriores = this.pewenes.map(({ x, y }) => ({ x, y }));
+    const distanciaASegmento = (x, y, a, b) => {
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const largo2 = dx * dx + dy * dy || 1;
+      const t = Matematica.Clamp(((x - a[0]) * dx + (y - a[1]) * dy) / largo2, 0, 1);
+      return Matematica.Distance.Between(x, y, a[0] + dx * t, a[1] + dy * t);
+    };
+    const libre = (x, y, revisarDecoracion = true) => {
+      if (x < 330 || x > 940 || y < 430 || y > mundo.alto - 90) return false;
+      if (Matematica.Distance.Between(x, y, mapa.ruka.x, mapa.ruka.y) < DISTANCIA_CASA) return false;
+      if (mapa.camino.slice(0, -1).some((punto, indice) =>
+        distanciaASegmento(x, y, punto, mapa.camino[indice + 1]) < 82)) return false;
+      if (anteriores.some(punto => Matematica.Distance.Between(x, y, punto.x, punto.y) < 120)) return false;
+      if (nuevas.some(punto => Matematica.Distance.Between(x, y, punto.x, punto.y) < DISTANCIA_PEWENES)) return false;
+      if (revisarDecoracion && this.escena.decoracionesMapa?.some(punto =>
+        Matematica.Distance.Between(x, y, punto.x, punto.y) < punto.radio + 34)) return false;
+      return true;
+    };
+
+    for (let intento = 0; intento < 2600 && nuevas.length < this.pewenes.length; intento++) {
+      const x = 330 + Math.floor(Math.random() * 611);
+      const y = 430 + Math.floor(Math.random() * (mundo.alto - 519));
+      if (libre(x, y)) nuevas.push({ x, y });
+    }
+
+    // Si la decoración ocupa por azar muchas ubicaciones, relajamos solo su
+    // separación visual; la ruka, el río y las distancias entre pewenes siguen protegidos.
+    for (let intento = 0; intento < 1200 && nuevas.length < this.pewenes.length; intento++) {
+      const x = 330 + Math.floor(Math.random() * 611);
+      const y = 430 + Math.floor(Math.random() * (mundo.alto - 519));
+      if (libre(x, y, false)) nuevas.push({ x, y });
+    }
+    if (nuevas.length < this.pewenes.length) {
+      const respaldo = [];
+      for (let x = 340; x <= 930; x += 50) {
+        for (let y = 440; y <= mundo.alto - 100; y += 55) {
+          if (libre(x, y, false)) respaldo.push({ x, y });
+        }
+      }
+      for (const punto of mezclar(respaldo)) {
+        if (nuevas.length === this.pewenes.length) break;
+        if (nuevas.every(actual => Matematica.Distance.Between(actual.x, actual.y, punto.x, punto.y) >= DISTANCIA_PEWENES)) {
+          nuevas.push(punto);
+        }
+      }
+    }
+    return nuevas;
+  }
+
+  moverPewen(pewen, x, y, tipo = pewen.tipo) {
+    pewen.x = x;
+    pewen.y = y;
+    pewen.tipo = TIPOS_PEWEN.includes(tipo) ? tipo : TIPOS_PEWEN[0];
+    pewen.arbol.setTexture(pewen.tipo + '-' + (this.estadoPewen || 'normal'))
+      .setScale(escalaPewen(pewen.tipo)).setPosition(x, y).setDepth(y);
+    pewen.pinones.setPosition(x, y - 7).setDepth(y + 1);
+    pewen.recolectado = false;
+    pewen.pinones.setVisible(true);
+  }
+
+  restaurarDistribucion(distribucion) {
+    if (!Array.isArray(distribucion)) return;
+    distribucion.forEach((punto, indice) => {
+      const pewen = this.pewenes[indice];
+      if (!pewen || !Number.isFinite(punto?.x) || !Number.isFinite(punto?.y)) return;
+      this.moverPewen(pewen, punto.x, punto.y, punto.tipo);
     });
   }
 
   reponerPinones() {
-    for (const pewen of this.pewenes) {
-      pewen.recolectado = false;
-      pewen.pinones.setVisible(true);
-    }
+    const posiciones = this.generarPosicionesPewen();
+    const tipos = this.crearTiposPewen(this.pewenes.length);
+    if (posiciones.length !== this.pewenes.length) return;
+    this.pewenes.forEach((pewen, indice) => this.moverPewen(pewen, posiciones[indice].x, posiciones[indice].y, tipos[indice]));
   }
 
   actualizar(personaje) {
