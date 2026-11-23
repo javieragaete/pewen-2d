@@ -10,6 +10,7 @@
 
 ### Verificación
 
-- El código de la etapa está guardado en `main`.
+- La sintaxis de `main.js`, `config.js` y `sprites.js` pasó `node --check`.
+- El generador de matrices pasó una comprobación aislada con una textura simulada.
 - Intenté abrir la versión en GitHub Pages, pero responde 404 porque aún no hay un sitio publicado. No se pudo iniciar el juego ni comprobar errores de consola o nitidez visual en el navegador.
 - La verificación de ejecución queda pendiente de una versión publicada o de un servidor local.
