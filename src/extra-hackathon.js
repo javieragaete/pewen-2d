@@ -34,9 +34,9 @@ export class ExtraHackathon {
 
     this.bodoque = escena.add.graphics({ x, y: piesY - 23 }).setDepth(piesY);
     this.dibujarBodoque();
-    this.numeroSuelo = escena.add.text(ARBOL.x - 66, ARBOL.y, '23', {
+    this.numeroSuelo = escena.add.text(x, piesY, '23', {
       fontFamily: 'Consolas, monospace', fontSize: '12px', color: '#92704b'
-    }).setOrigin(0.5, 1).setDepth(ARBOL.y + 0.1).setVisible(false);
+    }).setOrigin(0.5, 1).setDepth(piesY + 0.1).setVisible(false);
   }
 
   dibujarBodoque() {
