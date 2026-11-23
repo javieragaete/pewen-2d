@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba aislada · Sistemas e historia</title>
+  <style>
+    :root { color-scheme: dark; font-family: Consolas, "Courier New", monospace; background: #202522; color: #e6e7d8; }
+    body { margin: 0; padding: 1rem; }
+    h1 { margin: 0 0 .75rem; font-size: 1.15rem; }
+    p { margin: .4rem 0 1rem; color: #9daf73; }
+    #controles { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+    button { border: 2px solid #9daf73; background: #344c3b; color: #e6e7d8; padding: .55rem .8rem; font: inherit; cursor: pointer; }
+    button:hover { background: #4a6845; }
+    #estado { min-height: 1.3rem; margin: .5rem 0; }
+    #juego { width: min(100%, 1280px); }
+    canvas { display: block; max-width: 100%; image-rendering: pixelated; }
+  </style>
+</head>
+<body>
+  <h1>Prueba aislada del flujo D</h1>
+  <p>Mueve el rectángulo con flechas o WASD. Acércate a un pewén y pulsa E; elige 1 o 2.</p>
+  <div id="controles">
+    <button id="agua">Alternar agua</button>
+    <button id="entrega">Simular entrega de 5 piñones</button>
+    <button id="lonko">Diálogo: Lonko</button>
+    <button id="kimche">Diálogo: Kimche</button>
+    <button id="ruka">Entrar/salir de ruka</button>
+  </div>
+  <div id="estado" role="status"></div>
+  <div id="juego"></div>
+  <script src="../vendor/phaser.min.js"></script>
+  <script type="module">
+    import { iniciarSistemas } from '../src/sistemas/index.js';
+
+    const estado = document.querySelector('#estado');
+    const Phaser = globalThis.Phaser;
+    let estadoJuego;
+    let sistemas;
+    let dentroAgua = false;
+    let dentroRuka = false;
+
+    class MundoPrueba extends Phaser.Scene {
+      constructor() { super('Mundo'); }
+
+      create() {
+        this.add.rectangle(640, 360, 1280, 720, 0x344c3b);
+        this.add.rectangle(640, 625, 1280, 190, 0x4a6845);
+        this.add.rectangle(640, 530, 1280, 2, 0x9daf73);
+        this.suelo = { y: 530 };
+        this.jugador = this.add.rectangle(280, 530, 30, 54, 0xe6e7d8).setOrigin(0.5, 1).setDepth(600);
+        this.anclas = {
+          inicioJugador: { x: 280, y: 530 },
+          orillaInicio: { x: 200, y: 530 },
+          rukaPrincipal: { x: 180, y: 530, puertaX: 180 },
+          rukas: [],
+          pewenes: [
+            { x: 470, y: 530, tipo: 'adulto', variante: 'a' },
+            { x: 650, y: 530, tipo: 'adulto', variante: 'b' },
+            { x: 830, y: 530, tipo: 'joven', variante: 'a' },
+            { x: 1010, y: 530, tipo: 'adulto', variante: 'a' }
+          ],
+          agua: [{ x: 1120, y: 530, ancho: 160, alto: 32 }]
+        };
+        this.teclasMovimiento = this.input.keyboard.addKeys('UP,DOWN,LEFT,RIGHT,W,A,S,D');
+        this.bloqueado = false;
+        this.game.events.on('jugador:bloqueado', ({ bloqueado }) => { this.bloqueado = bloqueado; });
+        iniciarSistemas(this);
+        this.events.emit('mundo:listo', this);
+      }
+
+      update(_, delta) {
+        if (this.bloqueado) return;
+        const t = this.teclasMovimiento;
+        const x = Number(t.RIGHT.isDown || t.D.isDown) - Number(t.LEFT.isDown || t.A.isDown);
+        const y = Number(t.DOWN.isDown || t.S.isDown) - Number(t.UP.isDown || t.W.isDown);
+        this.jugador.x = Phaser.Math.Clamp(this.jugador.x + x * 180 * delta / 1000, 0, 1280);
+        this.jugador.y = Phaser.Math.Clamp(this.jugador.y + y * 130 * delta / 1000, 280, 625);
+      }
+    }
+
+    const config = {
+      type: Phaser.AUTO,
+      parent: 'juego',
+      width: 1280,
+      height: 720,
+      pixelArt: true,
+      roundPixels: true,
+      scene: [MundoPrueba]
+    };
+    const juego = new Phaser.Game(config);
+    window.juego = juego;
+    juego.events.on('sistemas:listos', datos => {
+      estadoJuego = datos.estado;
+      sistemas = datos.sistemas;
+      estado.textContent = 'Sistemas listos. Pulsa E junto a un pewén.';
+    });
+    juego.events.on('newen:cambio', datos => {
+      estado.dataset.newen = Math.round(datos.newen);
+    });
+    juego.events.on('jornada:inicio', ({ n }) => { estado.textContent = `Jornada ${n} iniciada.`; });
+    juego.events.on('jornada:fin', ({ n, perdidos }) => { estado.textContent = `Jornada ${n} cerrada. Piñones perdidos: ${perdidos}.`; });
+
+    document.querySelector('#agua').addEventListener('click', () => {
+      dentroAgua = !dentroAgua;
+      juego.events.emit('agua:cambio', { dentro: dentroAgua });
+      estado.textContent = dentroAgua ? 'El jugador entra al agua.' : 'El jugador sale del agua.';
+    });
+    document.querySelector('#entrega').addEventListener('click', () => {
+      if (!estadoJuego || !sistemas) return;
+      estadoJuego.pinonesLlevados = Math.max(estadoJuego.pinonesLlevados, 5);
+      sistemas.recoleccion.guardar();
+      juego.events.emit('entrega:pinones');
+    });
+    document.querySelector('#lonko').addEventListener('click', () => juego.events.emit('dialogo:npc', { rol: 'Lonko' }));
+    document.querySelector('#kimche').addEventListener('click', () => juego.events.emit('dialogo:npc', { rol: 'Kimche' }));
+    document.querySelector('#ruka').addEventListener('click', () => {
+      dentroRuka = !dentroRuka;
+      juego.events.emit(dentroRuka ? 'ruka:interior' : 'ruka:exterior');
+      estado.textContent = dentroRuka ? 'Recuperando newen en la ruka.' : 'Fuera de la ruka.';
+    });
+  </script>
+</body>
+</html>
