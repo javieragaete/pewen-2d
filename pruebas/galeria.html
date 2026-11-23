@@ -9,7 +9,7 @@
     body { margin: 0; background: #14181a; color: #e6e7d8; font: 16px system-ui, sans-serif; }
     main { max-width: 1280px; margin: auto; padding: 24px; }
     canvas { display: block; image-rendering: pixelated; }
-    #animaciones canvas { max-width: 100%; height: auto; }
+    #animaciones canvas, #composicion canvas { max-width: 100%; height: auto; }
     section { margin: 32px 0; }
     .muestras { display: flex; flex-wrap: wrap; gap: 20px; }
     figure { margin: 0; max-width: 100%; overflow: auto; }
@@ -24,6 +24,8 @@
     <p>Escala ×3. De izquierda a derecha, fondo claro, oscuro y cielo.</p>
     <h2>Animaciones del personaje</h2>
     <div id="animaciones"></div>
+    <h2>Escala y contraste en el paisaje</h2>
+    <div id="composicion"></div>
     <div id="muestras"></div>
   </main>
   <script src="../vendor/phaser.min.js"></script>

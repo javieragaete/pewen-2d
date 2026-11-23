@@ -21,7 +21,7 @@ export const filas = datos => datos.map(fila => fila.join(''));
 
 export function rect(datos, x, y, ancho, alto, color) {
   for (let dy = Math.max(0, y); dy < Math.min(datos.length, y + alto); dy++) {
-    datos[dy].fill(color, Math.max(0, x), Math.min(datos[dy].length, x + ancho));
+    datos[dy].fill(color, Math.max(0, x), Math.max(0, Math.min(datos[dy].length, x + ancho)));
   }
 }
 

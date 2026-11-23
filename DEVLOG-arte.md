@@ -14,3 +14,9 @@
 
 - Preparé 13 tiles y 13 elementos de apoyo. El agua usa dos cuadros sin marco por baldosa y tiene un par aparte con espuma en la superficie.
 - La galería mostró las 51 texturas con sus claves. Verifiqué que los tiles miden 16 × 16 y los árboles nativos 48 × 64. Revisé el contraste de suelo y agua sobre los tres fondos.
+
+## Etapa 4 · Contraste y escala
+
+- Compuse una vista lateral con terreno repetido y naturaleza agrupada. El personaje, el adulto y el joven están a ×3 con origen inferior central. Ajusté la densidad de vetas para que el suelo no compitiera visualmente.
+- Revisé la composición y repetí la prueba en Edge con las 51 texturas, las seis animaciones y los tres fondos. Verifiqué que registrar el paquete dos veces conserva las mismas texturas y animaciones, que ambas copas adultas difieren y que el estado seco cambia la silueta. Consola sin errores.
+- La galería usa un fondo de prueba propio. El mundo, la ruka y el HUD corresponden a los otros flujos.

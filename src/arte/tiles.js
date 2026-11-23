@@ -2,7 +2,7 @@ import { filas, matriz, rect } from './pixel.js';
 
 function suelo(base, sombra, luz, variante) {
   const datos = matriz(16, 16, base);
-  const vetas = [[2, 3, 3], [9, 2, 3], [6, 7, 4], [11, 11, 3], [2, 12, 3]];
+  const vetas = [[2, 3, 3], [7, 7, 5], [10, 11, 3], [2, 13, 2]];
   for (const [x, y, ancho] of vetas) {
     const dx = (x + variante * 2) % 12 + 1;
     rect(datos, dx, y, ancho, 1, sombra);

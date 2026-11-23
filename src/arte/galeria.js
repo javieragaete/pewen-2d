@@ -41,6 +41,53 @@ function mostrarMuestras(escena) {
   }
 }
 
+function mostrarComposicion(escena) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200;
+  canvas.height = 720;
+  canvas.setAttribute('aria-label', 'Personaje y pewenes junto a un curso de agua');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const pintar = (x, y, ancho, alto, tono) => {
+    ctx.fillStyle = PALETA[tono];
+    ctx.fillRect(x, y, ancho, alto);
+  };
+  const pegar = (clave, x, y) => {
+    const img = escena.textures.get(clave).getSourceImage();
+    ctx.drawImage(img, x, y, img.width * ESCALA, img.height * ESCALA);
+  };
+  const plantar = (clave, x, suelo) => {
+    const img = escena.textures.get(clave).getSourceImage();
+    pegar(clave, x - Math.floor(img.width * ESCALA / 2), suelo - img.height * ESCALA);
+  };
+
+  pintar(0, 0, 1200, 720, 'u');
+  // Franjas amplias y de poco contraste simulan un fondo del mundo sin depender de otro flujo.
+  for (let x = 0; x < 1200; x += 6) {
+    const y = 246 + 6 * Math.floor((62 * Math.sin(x / 126) + 17 * Math.cos(x / 62)) / 6);
+    pintar(x, y, 6, 720 - y, 'm');
+    const yBosque = 444 + 6 * Math.floor((35 * Math.cos(x / 102)) / 6);
+    pintar(x, yBosque, 6, 720 - yBosque, 'A');
+  }
+  for (const [clave, x, suelo] of [
+    ['nat-arbol-0', 36, 672], ['nat-arbol-1', 425, 672], ['nat-arbol-1', 1090, 672],
+    ['nat-arbusto-0', 390, 672], ['nat-pasto-1', 465, 672], ['nat-roca-2', 475, 672],
+    ['pewen-adulto-a-normal', 668, 672], ['pewen-joven-a-sano', 977, 672],
+    ['pj-reposo-0', 547, 672], ['pinon-suelo', 625, 672]
+  ]) plantar(clave, x, suelo);
+
+  for (let x = 0; x < 1200; x += 48) {
+    const columna = x / 48;
+    if (columna >= 2 && columna <= 6) {
+      pegar('tile-agua-sup-0', x, 687);
+    } else {
+      const clave = columna === 1 || columna === 7 ? 'tile-arena' : 'tile-cesped-' + (columna * 7 % 3);
+      pegar(clave, x, 672);
+    }
+  }
+  document.querySelector('#composicion').replaceChildren(canvas);
+}
+
 class Galeria extends Phaser.Scene {
   create() {
     registrarArteBase(this);
@@ -55,6 +102,7 @@ class Galeria extends Phaser.Scene {
       this.add.text(indice * 205 + 100, 326, clave, { fontFamily: 'monospace', fontSize: '16px', color: PALETA.N })
         .setOrigin(0.5, 0);
     });
+    mostrarComposicion(this);
     mostrarMuestras(this);
   }
 }
