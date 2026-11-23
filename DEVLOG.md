@@ -32,3 +32,36 @@
 - La escena de inicio abre antes de Juego. El nombre y el subtítulo se cambian en `src/config.js` y el fondo usa formas de Phaser y la paleta existente.
 - El foco se mueve con flechas o W/S y se activa con Enter, espacio o clic. La carga deshabilitada se salta al navegar. Las pantallas en preparación permiten volver con Esc o clic.
 - En Edge comprobamos la navegación, el estado deshabilitado, la recarga de la página y el paso a Juego. También verificamos la recolección, el HUD, el reloj y el descanso con la consola sin errores. Las pruebas de persistencia quedan para las etapas 2 y 3.
+
+## Etapa 3 — Pewenes y ruka
+
+- Añadidos pewenes sanos, normales y secos con matrices de píxeles generadas por código; su apariencia cambia por umbrales discretos del equilibrio.
+- La ruka incorpora techo de paja, puerta baja y humo de dos cuadros.
+- Conservadas las zonas físicas existentes de interacción.
+
+## Etapa 4 — Suelo y entorno
+
+- Añadidos tiles repetibles de suelo, cielo y agua, junto con árboles nativos, montañas, rocas, arbustos y variaciones de pasto.
+- Río con animación leve y paisaje con variación discreta según el equilibrio.
+- Todos los elementos usan la paleta de `src/config.js`.
+
+## Etapa 5 — Interfaz
+
+- Rediseñados HUD, barras, iconos, textos de ayuda y menú de interacción con marco pixelado y fuente monoespaciada del sistema.
+- Conservados los textos, opciones y valores funcionales de las interacciones.
+
+## Etapa 6 — Efectos y pulido
+
+- Añadidos destello breve de permiso y partículas de piñón al recolectar.
+- Ajustado el tamaño de los tiles y el detalle del suelo tras revisión visual para reducir ruido.
+- Corregido un error de ejecución del menú: `setSize` no estaba disponible en el objeto de fondo tileado y se eliminó esa llamada.
+- Todo el arte continúa siendo generado desde matrices y código; no se añadieron recursos de terceros.
+
+### Verificación final
+
+- `node --check` pasó en módulos de configuración, sprites y escenas.
+- La comprobación aislada registró 41 texturas generadas.
+- En navegador local se verificaron el menú, el juego, el menú de interacción y la recolección; el HUD reflejó la recolección y no se observaron errores de consola.
+- La publicación de GitHub Pages todavía no está disponible (404); la verificación se hizo en servidor local.
+- No se modificaron controles ni valores de configuración o mecánicas.
+
