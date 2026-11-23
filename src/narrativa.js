@@ -1,3 +1,4 @@
+import { mostrarTecla } from './settings.js';
 import { CONFIG } from './config.js';
 import { dibujarMarcoPixel } from './sprites.js';
 
@@ -41,7 +42,7 @@ export class GestorJornadas {
   crearIndicadores() {
     const pistaFondo = this.escena.add.graphics();
     dibujarMarcoPixel(pistaFondo, -118, -22, 236, 32, color('tinta'), color('musgo'));
-    const pistaTexto = this.escena.add.text(0, -14, '[E] Terminar jornada', {
+    const pistaTexto = this.escena.add.text(0, -14, '[' + mostrarTecla(this.escena.recoleccion.asignaciones.interactuar) + '] Terminar jornada', {
       fontFamily: mono, fontSize: '14px', color: paletaPixel.nieve
     }).setOrigin(0.5, 0.5);
     this.pistaFin = this.escena.add.container(mapa.ruka.x, mapa.ruka.y - 118, [pistaFondo, pistaTexto])

@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { cargarPreferencias, mostrarAsignacion } from '../settings.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
 import { ESCALA_PIXEL, dibujarMarcoPixel, registrarSpritesPixel } from '../sprites.js';
@@ -8,6 +9,7 @@ const { pantalla, mundo, jugador, camara, mapa, partida, paletaPixel } = CONFIG;
 const Phaser = globalThis.Phaser;
 const mono = 'Consolas, "Courier New", monospace';
 const color = clave => Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
+const URL_TEMA = new URL('../../assets/audio/tema_mapuche_tribal/tema.wav', import.meta.url).href;
 
 export class EscenaJuego extends Phaser.Scene {
   constructor() {
@@ -18,7 +20,15 @@ export class EscenaJuego extends Phaser.Scene {
     this.cargarGuardado = Boolean(datos.cargar);
   }
 
+  preload() {
+    if (!this.cache.audio.exists('tema-mapuche-tribal')) this.load.audio('tema-mapuche-tribal', URL_TEMA);
+    this.load.on('loaderror', archivo => {
+      if (archivo.key === 'tema-mapuche-tribal') console.error('No se pudo cargar la música:', archivo.src);
+    });
+  }
+
   create() {
+    this.iniciarMusicaDeFondo();
     registrarSpritesPixel(this);
     this.physics.world.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.dibujarMapa();
@@ -27,22 +37,23 @@ export class EscenaJuego extends Phaser.Scene {
     this.newen = partida.newenInicial;
     this.equilibrio = partida.equilibrioInicial;
     this.posicionAnterior = new Phaser.Math.Vector2(this.personaje.x, this.personaje.y);
-    this.recoleccion = new Recoleccion(this, efecto => this.aplicarRecoleccion(efecto));
+    const { controles } = cargarPreferencias();
+    this.recoleccion = new Recoleccion(this, efecto => this.aplicarRecoleccion(efecto), controles);
     this.estadoPaisaje = 'normal';
     this.recoleccion.actualizarEquilibrio(this.equilibrio);
     this.hud = new Hud(this);
     this.jornadas = new GestorJornadas(this);
     this.restaurarPartida();
 
-    this.flechas = this.input.keyboard.createCursorKeys();
-    this.wasd = this.input.keyboard.addKeys('W,A,S,D');
+    this.movimiento = Object.fromEntries(['up', 'down', 'left', 'right'].map(direccion =>
+      [direccion, controles[direccion].filter(Boolean).map(tecla => this.input.keyboard.addKey(tecla))]));
     this.cameras.main.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.cameras.main.startFollow(this.personaje, true, camara.seguimiento, camara.seguimiento);
 
     const marcoAyuda = this.add.graphics({ x: 12, y: pantalla.alto - 48 });
-    dibujarMarcoPixel(marcoAyuda, 0, 0, 250, 36, color('tinta'), color('musgo'));
+    dibujarMarcoPixel(marcoAyuda, 0, 0, 380, 36, color('tinta'), color('musgo'));
     marcoAyuda.setScrollFactor(0).setDepth(mundo.alto + 1);
-    const ayudaControl = this.add.text(24, pantalla.alto - 40, 'Flechas o WASD · Mover', {
+    const ayudaControl = this.add.text(24, pantalla.alto - 40, 'Mover: ' + ['up', 'left', 'down', 'right'].map(k => mostrarAsignacion(controles[k])).join(' '), {
       fontFamily: mono, fontSize: '16px', color: paletaPixel.nieve
     }).setScrollFactor(0).setDepth(mundo.alto + 1);
     this.crearPausa();
@@ -139,6 +150,21 @@ export class EscenaJuego extends Phaser.Scene {
   guardarYSalir() {
     if (!this.guardarPartida()) return;
     this.scene.start('Menu');
+  }
+
+  iniciarMusicaDeFondo() {
+    this.musica = this.sound.add('tema-mapuche-tribal', { loop: true, volume: 0.24 });
+    this._iniciarMusica = () => {
+      if (this.sound.locked || !this.musica || this.musica.isPlaying) return;
+      this.sound.off(Phaser.Sound.Events.UNLOCKED, this._iniciarMusica);
+      this.musica.play();
+    };
+    if (this.sound.locked) this.sound.once(Phaser.Sound.Events.UNLOCKED, this._iniciarMusica);
+    else this._iniciarMusica();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.sound.off(Phaser.Sound.Events.UNLOCKED, this._iniciarMusica);
+      this.musica?.stop();
+    });
   }
 
   dibujarMapa() {
@@ -384,10 +410,9 @@ export class EscenaJuego extends Phaser.Scene {
       return;
     }
 
-    const { left, right, up, down } = this.flechas;
-    const { W, A, S, D } = this.wasd;
-    const x = Number(right.isDown || D.isDown) - Number(left.isDown || A.isDown);
-    const y = Number(down.isDown || S.isDown) - Number(up.isDown || W.isDown);
+    const pulsado = direccion => Number(this.movimiento[direccion].some(tecla => tecla.isDown));
+    const x = pulsado('right') - pulsado('left');
+    const y = pulsado('down') - pulsado('up');
     const personaje = this.personaje;
     const moviendose = !this.posicionAnterior.equals(personaje);
     this.posicionAnterior.set(personaje.x, personaje.y);

@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { Configuracion } from './scenes/configuracion.js';
 
 const Phaser = globalThis.Phaser;
 document.title = CONFIG.menu.titulo;
@@ -14,7 +15,7 @@ if (Phaser) {
     height: CONFIG.pantalla.alto,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     physics: { default: 'arcade' },
-    scene: [EscenaMenu, EscenaJuego]
+    scene: [EscenaMenu, EscenaJuego, Configuracion]
   });
 } else {
   const estado = document.querySelector('#estado');

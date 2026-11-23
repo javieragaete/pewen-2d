@@ -10,7 +10,7 @@ export const CONFIG = {
       verde: { centro: 0x246537, luz: 0x70b657, sombra: 0x153f2a },
       azul: { centro: 0x234b83, luz: 0x75bce4, sombra: 0x172d57 },
       gris: { centro: 0x343936, luz: 0x737973, sombra: 0x242924 },
-      opciones: ['rojo', 'azul', 'verde', 'azul', 'verde']
+      opciones: ['rojo', 'azul', 'verde', 'azul', 'verde', 'rojo']
     }
   },
   pantalla: { ancho: 1280, alto: 720 },
