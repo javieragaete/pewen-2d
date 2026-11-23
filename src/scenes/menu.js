@@ -94,21 +94,50 @@ export class EscenaMenu extends Phaser.Scene {
     this.opciones.push({ fondo, indicador, accion });
     if (accion) {
       fondo.setInteractive(new Phaser.Geom.Rectangle(0, 0, 432, 60), Phaser.Geom.Rectangle.Contains)
-        .on('pointerover', () => this.seleccionar(indice))
+        .on('pointerover', () => this.seleccionar(indice, true))
         .on('pointerdown', () => {
           this.seleccionar(indice);
+          this.reproducirSonidoBoton('confirmar', true);
           accion();
         });
     }
   }
 
-  seleccionar(indice) {
+  seleccionar(indice, conSonido = false) {
+    const cambio = this.seleccion !== indice;
     this.seleccion = indice;
+    if (cambio && conSonido) this.reproducirSonidoBoton('mover');
     this.opciones.forEach(({ fondo, indicador, accion }, i) => {
       const activa = i === indice;
       this.dibujarOpcion(fondo, activa ? 'bosqueOscuro' : accion ? 'tinta' : 'rocaOscura');
       indicador.setVisible(activa);
     });
+  }
+
+  reproducirSonidoBoton(tipo, gestoUsuario = false) {
+    const contexto = this.sound.context;
+    if (!contexto?.createOscillator) return;
+
+    const sonar = () => {
+      const ahora = contexto.currentTime;
+      const confirmar = tipo === 'confirmar';
+      const duracion = confirmar ? 0.095 : 0.045;
+      const tono = contexto.createOscillator();
+      const volumen = contexto.createGain();
+      tono.type = 'sine';
+      tono.frequency.setValueAtTime(confirmar ? 440 : 620, ahora);
+      if (confirmar) tono.frequency.exponentialRampToValueAtTime(660, ahora + duracion);
+      volumen.gain.setValueAtTime(0.0001, ahora);
+      volumen.gain.exponentialRampToValueAtTime(confirmar ? 0.055 : 0.025, ahora + 0.008);
+      volumen.gain.exponentialRampToValueAtTime(0.0001, ahora + duracion);
+      tono.connect(volumen);
+      volumen.connect(this.sound.masterVolumeNode || contexto.destination);
+      tono.start(ahora);
+      tono.stop(ahora + duracion);
+    };
+
+    if (contexto.state === 'running') sonar();
+    else if (gestoUsuario && contexto.state === 'suspended') contexto.resume().then(sonar).catch(() => {});
   }
 
   moverSeleccion(paso) {
@@ -117,7 +146,7 @@ export class EscenaMenu extends Phaser.Scene {
     do {
       indice = Phaser.Math.Wrap(indice + paso, 0, total);
     } while (!this.opciones[indice].accion);
-    this.seleccionar(indice);
+    this.seleccionar(indice, true);
   }
 
   update() {
@@ -126,8 +155,13 @@ export class EscenaMenu extends Phaser.Scene {
     const arriba = [UP, W].map(pulsada).some(Boolean);
     const abajo = [DOWN, S].map(pulsada).some(Boolean);
     const elegir = [ENTER, SPACE].map(pulsada).some(Boolean);
-    if (pulsada(ESC) && this.pantallaSecundaria) this.mostrarPrincipal();
-    else if (elegir) this.opciones[this.seleccion].accion();
+    if (pulsada(ESC) && this.pantallaSecundaria) {
+      this.reproducirSonidoBoton('confirmar', true);
+      this.mostrarPrincipal();
+    } else if (elegir) {
+      this.reproducirSonidoBoton('confirmar', true);
+      this.opciones[this.seleccion].accion();
+    }
     else if (arriba || abajo) this.moverSeleccion(arriba ? -1 : 1);
   }
 }
