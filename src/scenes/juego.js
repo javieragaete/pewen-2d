@@ -32,6 +32,7 @@ export class EscenaJuego extends Phaser.Scene {
     registrarSpritesPixel(this);
     this.physics.world.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.dibujarMapa();
+    this.crearObstaculosNaturales();
     this.crearRuka();
     this.crearJugador();
     this.newen = partida.newenInicial;
@@ -360,6 +361,38 @@ export class EscenaJuego extends Phaser.Scene {
     this.physics.add.existing(this.obstaculoRuka, true);
   }
 
+  crearObstaculosNaturales() {
+    // La base visible de la cordillera está a y=260; este muro impide subir
+    // por la ladera sin cerrar el paso por el resto del claro.
+    const barreraMontana = this.add.zone(mundo.ancho / 2, 246, mundo.ancho, 28);
+    this.physics.add.existing(barreraMontana, true);
+    this.obstaculosNaturales = [barreraMontana];
+
+    // Encadenar hitboxes circulares sobre la misma spline que dibuja el río
+    // evita que queden huecos en las curvas y bloquea el cruce de ribera a ribera.
+    const curva = new Phaser.Curves.Spline(mapa.rio.map(([x, y]) => new Phaser.Math.Vector2(x, y)));
+    const puntos = curva.getPoints(520);
+    for (let i = 0; i < puntos.length; i += 8) {
+      const punto = puntos[i];
+      const zona = this.add.zone(punto.x, punto.y, 124, 124);
+      this.physics.add.existing(zona, true);
+      zona.body.setCircle(62);
+      this.obstaculosNaturales.push(zona);
+    }
+    const ultimo = puntos[puntos.length - 1];
+    const zonaFinal = this.add.zone(ultimo.x, ultimo.y, 124, 124);
+    this.physics.add.existing(zonaFinal, true);
+    zonaFinal.body.setCircle(62);
+    this.obstaculosNaturales.push(zonaFinal);
+
+    // El cauce continúa fuera del borde inferior del mapa; prolongamos la
+    // barrera hasta el límite del mundo para que no se pueda rodear por abajo.
+    const zonaBordeInferior = this.add.zone(ultimo.x, mundo.alto - 14, 124, 124);
+    this.physics.add.existing(zonaBordeInferior, true);
+    zonaBordeInferior.body.setCircle(62);
+    this.obstaculosNaturales.push(zonaBordeInferior);
+  }
+
   crearJugador() {
     this.figuraJugador = this.add.sprite(0, 0, 'persona-abajo-0')
       .setOrigin(0.5, 0.5)
@@ -375,6 +408,7 @@ export class EscenaJuego extends Phaser.Scene {
     this.personaje.body.setCircle(jugador.radio);
     this.personaje.body.setCollideWorldBounds(true);
     this.physics.add.collider(this.personaje, this.obstaculoRuka);
+    this.obstaculosNaturales.forEach(obstaculo => this.physics.add.collider(this.personaje, obstaculo));
   }
 
   actualizarAnimacionJugador(x, y, tiempo, bloqueado) {

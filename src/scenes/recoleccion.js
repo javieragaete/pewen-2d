@@ -88,9 +88,18 @@ export class Recoleccion {
     if (!cercano) return;
     this.pista.setPosition(cercano.x, cercano.y - 137)
       .setDepth(cercano.y + 2);
-    this.pistaTexto.setText(cercano.recolectado ? 'Ya recolectado' : '[' + mostrarTecla(this.asignaciones.interactuar) + '] Interactuar');
+    const limite = CONFIG.partida.metaPinones;
+    const cargaCompleta = this.pinones >= limite;
+    this.pistaTexto.setText(cercano.recolectado ? 'Ya recolectado' : cargaCompleta
+      ? `Carga completa ${limite}/${limite}`
+      : '[' + mostrarTecla(this.asignaciones.interactuar) + '] Interactuar');
     if (interactuar && !cercano.recolectado) {
       this.aviso?.remove();
+      if (cargaCompleta) {
+        this.mostrar('No puedes recoger más piñones.\nLímite de carga: ' + limite + '. Vuelve a la ruka.');
+        this.aviso = this.escena.time.delayedCall(recoleccion.duracionAviso, () => this.panel.setVisible(false));
+        return;
+      }
       this.objetivo = cercano;
       this.ocupaAlJugador = true;
       this.pista.setVisible(false);
@@ -140,10 +149,15 @@ export class Recoleccion {
     this.crearParticulas(pewen);
     pewen.recolectado = true;
     pewen.pinones.setVisible(false);
-    this.pinones += efecto.pinones;
+    const limite = CONFIG.partida.metaPinones;
+    const cantidad = Math.min(efecto.pinones, Math.max(0, limite - this.pinones));
+    this.pinones += cantidad;
     this.alRecolectar(efecto);
     this.ocupaAlJugador = false;
-    this.mostrar('+' + efecto.pinones + ' piñones');
+    const mensaje = this.pinones >= limite && cantidad < efecto.pinones
+      ? `+${cantidad} piñones\nCarga completa: ${limite}/${limite}`
+      : `+${cantidad} piñones`;
+    this.mostrar(mensaje);
     this.aviso = this.escena.time.delayedCall(recoleccion.duracionAviso, () => this.panel.setVisible(false));
   }
 
