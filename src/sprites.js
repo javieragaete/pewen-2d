@@ -155,21 +155,19 @@ function crearMatrizRuka() {
 
 function crearMatrizArbolNativo(variante) {
   const matriz = matrizVacia(24, 32);
-  const copa = variante === 0 ? 'D' : 'F';
-  for (let y = 2; y < 24; y++) {
-    for (let x = 2; x < 22; x++) {
-      const dx = (x - 12) / 10;
-      const dy = (y - 13) / 12;
-      if (dx * dx + dy * dy < 1) {
-        // Grupos de hojas iluminadas desde arriba a la izquierda.
-        const relieve = Math.sin(x * 0.74 + Math.floor(y / 3)) + Math.cos(y * 0.87);
-        matriz[y][x] = dx + dy > 0.85 ? 'D' : relieve - dx - dy > 1.35 ? (variante ? 'V' : 'F') : copa;
+  // Las faldas se solapan de abajo hacia arriba para marcar los pisos del pino.
+  for (let y = 19; y < 32; y++) {
+    matriz[y].splice(10, 4, 'B', 'W', 'B', 'B');
+  }
+  for (const [inicio, alto, radio] of [[12, 15, 11], [7, 13, 9], [3, 11, 7], [0, 10, 5]]) {
+    for (let fila = 0; fila < alto; fila++) {
+      const ancho = Math.floor(fila * (radio - variante) / (alto - 1));
+      for (let dx = -ancho; dx <= ancho; dx++) {
+        const y = inicio + fila - (fila === alto - 1 && Math.abs(dx) % 4 === 1 ? 1 : 0);
+        const luz = dx < 1 && fila < alto - 2 && (dx + fila + 16) % 6 < 4;
+        matriz[y][11 + dx] = luz ? (variante ? 'V' : 'F') : dx > 2 || fila >= alto - 2 ? 'D' : 'F';
       }
     }
-  }
-  for (let y = 22; y < 32; y++) {
-    matriz[y][11] = 'B';
-    matriz[y][12] = 'W';
   }
   return guardarMatriz(matriz);
 }
@@ -201,7 +199,20 @@ function crearMatrizCielo() {
 function crearTile(base) {
   const matriz = matrizVacia(16, 16);
   for (const fila of matriz) fila.fill(base);
-  // Camino y ribera quedan planos: sin bordes por tile ni grano repetitivo.
+  return guardarMatriz(matriz);
+}
+
+function crearTileCamino(variante) {
+  const matriz = matrizVacia(16, 16);
+  for (const fila of matriz) fila.fill('T');
+
+  const detalles = [
+    [[2, 2, 'S'], [10, 1, 'B'], [13, 5, 'S'], [3, 12, 'B'], [10, 14, 'S'], [5, 7, 'G'], [6, 7, 'H'], [6, 8, 'G']],
+    [[4, 1, 'B'], [14, 3, 'S'], [8, 11, 'B'], [2, 8, 'S'], [12, 14, 'B'], [10, 4, 'G'], [11, 4, 'H'], [11, 5, 'G']],
+    [[2, 6, 'S'], [7, 3, 'B'], [13, 9, 'S'], [5, 14, 'B'], [14, 2, 'S'], [4, 10, 'G'], [5, 10, 'H'], [5, 11, 'G']]
+  ][variante % 3];
+
+  for (const [x, y, tono] of detalles) matriz[y][x] = tono;
   return guardarMatriz(matriz);
 }
 
@@ -409,7 +420,9 @@ export function registrarSpritesPixel(escena) {
     destello: MATRIZ_DESTELLO,
     'onda-0': MATRIZ_ONDA_0,
     'onda-1': MATRIZ_ONDA_1,
-    'tile-camino': crearTile('T'),
+    'tile-camino-0': crearTileCamino(0),
+    'tile-camino-1': crearTileCamino(1),
+    'tile-camino-2': crearTileCamino(2),
     'tile-ribera': crearTile('T'),
     'tile-cielo': crearMatrizCielo()
   };

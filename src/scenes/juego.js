@@ -1,6 +1,6 @@
 import { banderaRuka } from '../paisaje-menu.js';
 import { CONFIG } from '../config.js';
-import { cargarPreferencias, mostrarAsignacion, volumenCanal } from '../settings.js';
+import { cargarPreferencias, mostrarAsignacion, reproducirEfectoAudio, volumenCanal } from '../settings.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
 import { ExtraHackathon } from '../extra-hackathon.js';
@@ -27,9 +27,14 @@ export class EscenaJuego extends Phaser.Scene {
 
   preload() {
     if (!this.cache.audio.exists('tema-mapuche-tribal')) this.load.audio('tema-mapuche-tribal', URL_TEMA);
-    this.load.audio('sfx-pinon-recoger', new URL('../../assets/audio/efectos/pinon-recoger.wav', import.meta.url).href);
+    for (const clave of ['pinon-recoger', 'tomar-sin-permiso', 'ambiente-degradar']) {
+      const key = 'sfx-' + clave;
+      if (!this.cache.audio.exists(key)) {
+        this.load.audio(key, new URL(`../../assets/audio/efectos/${clave}.wav`, import.meta.url).href);
+      }
+    }
     this.load.on('loaderror', archivo => {
-      if (archivo.key === 'tema-mapuche-tribal' || archivo.key === 'sfx-pinon-recoger') {
+      if (archivo.key === 'tema-mapuche-tribal' || archivo.key.startsWith('sfx-')) {
         console.error('No se pudo cargar el audio:', archivo.src);
       }
     });
@@ -236,10 +241,23 @@ export class EscenaJuego extends Phaser.Scene {
         caminoTiles.add(x + ',' + y);
       }
     }
-    for (const clave of caminoTiles) {
-      const [x, y] = clave.split(',').map(Number);
-      this.add.image(x, y, 'tile-camino').setOrigin(0).setScale(2).setDepth(-10);
-    }
+    const caminoOrdenado = [...caminoTiles].map(clave => clave.split(',').map(Number));
+    caminoOrdenado.forEach(([x, y], indice) => {
+      const variante = Math.abs(Math.trunc((x / anchoTile) * 7 + (y / anchoTile) * 13)) % 3;
+      this.add.image(x, y, 'tile-camino-' + variante).setOrigin(0).setScale(2).setDepth(-10);
+
+      if (indice % 5 !== 2) return;
+      const anterior = caminoOrdenado[Math.max(0, indice - 1)];
+      const siguiente = caminoOrdenado[Math.min(caminoOrdenado.length - 1, indice + 1)];
+      const dx = siguiente[0] - anterior[0];
+      const dy = siguiente[1] - anterior[1];
+      const largo = Math.hypot(dx, dy) || 1;
+      const lado = Math.floor(indice / 5) % 2 === 0 ? 1 : -1;
+      const piedraX = x + anchoTile / 2 - (dy / largo) * 7 * lado;
+      const piedraY = y + anchoTile / 2 + (dx / largo) * 7 * lado;
+      this.add.image(piedraX, piedraY, 'roca-' + (indice % 2))
+        .setOrigin(0.5).setScale(1).setAlpha(0.9).setDepth(-9);
+    });
 
     // Cauce continuo: una ribera sobria, dos tonos de agua y ondas largas espaciadas.
     const curva = new Phaser.Curves.Spline(mapa.rio.map(([x, y]) => new Phaser.Math.Vector2(x, y)));
@@ -270,37 +288,12 @@ export class EscenaJuego extends Phaser.Scene {
     dibujarBanda(50, 'aguaOscura', -8);
     dibujarBanda(27, 'agua', -7, 0.32);
 
-    this.ondasAgua = [[], []];
-    for (let i = 14, indice = 0; i < puntos.length - 14; i += 28, indice++) {
-      const antes = puntos[i - 2];
-      const despues = puntos[i + 2];
-      const dx = despues.x - antes.x;
-      const dy = despues.y - antes.y;
-      const largo = Math.hypot(dx, dy) || 1;
-      const ux = dx / largo;
-      const uy = dy / largo;
-      const nx = -uy;
-      const ny = ux;
-      const punto = puntos[i];
-      const ola = this.add.graphics().setDepth(-6);
-      ola.lineStyle(2, color('agua'), 0.78).beginPath();
-      ola.moveTo(Math.round(punto.x - ux * 18 - nx * 5), Math.round(punto.y - uy * 18 - ny * 5));
-      ola.lineTo(Math.round(punto.x - ux * 5 - nx * 5), Math.round(punto.y - uy * 5 - ny * 5));
-      ola.lineTo(Math.round(punto.x + ux * 7 + nx * 4), Math.round(punto.y + uy * 7 + ny * 4));
-      ola.lineTo(Math.round(punto.x + ux * 18 + nx * 4), Math.round(punto.y + uy * 18 + ny * 4));
-      ola.strokePath();
-      const grupo = indice % 2;
-      ola.setVisible(grupo === 0);
-      this.ondasAgua[grupo].push(ola);
-    }
-    this.time.addEvent({
-      delay: 1400,
-      loop: true,
-      callback: () => {
-        this.ondasAgua[0].forEach(ola => ola.setVisible(!ola.visible));
-        this.ondasAgua[1].forEach(ola => ola.setVisible(!ola.visible));
-      }
-    });
+    this.cauce = puntos;
+    this.reflejosRio = this.add.graphics().setDepth(-6);
+    const extremoCamino = mapa.camino[mapa.camino.length - 1];
+    const centro = puntos.reduce((a, b) => Math.abs(a.y - extremoCamino[1]) < Math.abs(b.y - extremoCamino[1]) ? a : b);
+    this.puente = { x: Math.round(centro.x), y: Math.round(centro.y), semialto: 25 };
+    this.dibujarPuente();
 
     const azar = new Phaser.Math.RandomDataGenerator([String(mapa.semilla)]);
     const decoracion = mapa.decoracion;
@@ -398,6 +391,41 @@ export class EscenaJuego extends Phaser.Scene {
     this.obstaculosNaturales.push(base);
   }
 
+  dibujarPuente() {
+    const { x, y, semialto } = this.puente;
+    const g = this.add.graphics().setPosition(x, y).setDepth(-4);
+    g.fillStyle(0x243333, 0.45).fillRect(-87, -14, 184, 53);
+    for (const poste of [-76, -29, 28, 75]) {
+      g.fillStyle(0x453328).fillRect(poste, 12, 9, 28);
+      g.fillStyle(0x93633f).fillRect(poste + 1, 16, 3, 22);
+    }
+    for (let i = 0; i < 18; i++) {
+      const borde = -90 + i * 10;
+      const arco = Math.round(4 * Math.sin(Math.PI * i / 17));
+      const arriba = -semialto - arco;
+      g.fillStyle(0x553c2d).fillRect(borde, arriba, 10, 2 * semialto + 6);
+      g.fillStyle(i % 3 ? 0xb37e48 : 0xa46e42).fillRect(borde, arriba, 9, 2 * semialto);
+      g.fillStyle(0xd49e60).fillRect(borde + 1, arriba, 7, 2)
+        .fillRect(borde + 2, arriba + 6 + i % 5, 2, 12);
+      g.fillStyle(0x875737).fillRect(borde + 6, arriba + 30 - i % 7, 1, 10);
+    }
+  }
+
+  animarRio() {
+    const g = this.reflejosRio.clear();
+    const largo = this.cauce.length - 1;
+    for (let i = 0; i < 62; i++) {
+      const fase = (i * 17.3 + this.segundosViento * (4 + i % 3)) % largo;
+      const indice = Math.floor(fase);
+      const a = this.cauce[indice], b = this.cauce[indice + 1];
+      const t = fase - indice;
+      const x = Math.round(a.x + (b.x - a.x) * t + (i * 31 % 83) - 41);
+      const y = Math.round(a.y + (b.y - a.y) * t);
+      g.fillStyle(i % 4 ? 0x8cbfc0 : 0xc6dedd, 0.78)
+        .fillRect(x, y, 4 + i % 9, 2).fillRect(x + 3, y + 2, 3, 2);
+    }
+  }
+
   ambientarArbol(arbol) {
     const { x, y, displayWidth: ancho } = arbol;
     const sombra = this.add.graphics().setPosition(x, y).setDepth(-2);
@@ -411,6 +439,9 @@ export class EscenaJuego extends Phaser.Scene {
 
   actualizarAmbiente(delta) {
     this.segundosViento += delta / 1000;
+    this.animarRio();
+    const faseFuego = Math.floor(this.segundosViento * 6) % 4;
+    if (faseFuego !== this.faseFuego) this.dibujarLlama(faseFuego);
     // Chubasco breve sobre la cordillera, con entrada y salida graduales.
     const fase = this.segundosViento % 45 - 6;
     this.nevada.clear();
@@ -435,10 +466,26 @@ export class EscenaJuego extends Phaser.Scene {
   actualizarEstadoPaisaje(equilibrio) {
     const estado = equilibrio >= 60 ? 'sano' : equilibrio <= 30 ? 'seco' : 'normal';
     if (estado === this.estadoPaisaje) return;
+    const nivelesEstado = { seco: 0, normal: 1, sano: 2 };
+    const ambienteSeDegrada = nivelesEstado[estado] < nivelesEstado[this.estadoPaisaje];
     this.estadoPaisaje = estado;
     this.fondoSuelo?.setTexture('tile-suelo-bosque-' + estado);
     this.terrenoClaro?.setTexture('tile-suelo-claro-' + estado);
     this.recoleccion?.actualizarEquilibrio(equilibrio);
+    if (ambienteSeDegrada) {
+      this.time.delayedCall(180, () => reproducirEfectoAudio(this, 'sfx-ambiente-degradar', 0.72));
+    }
+  }
+
+  dibujarLlama(fase) {
+    this.faseFuego = fase;
+    const g = this.llama.clear();
+    const punta = [-3, -1, 1, -1][fase];
+    g.fillStyle(0xbb4b2f).fillRect(-8,-8,16,7).fillRect(-6,-14,12,9)
+      .fillRect(punta,-20 - fase,4,9).fillRect(4,-12 - fase,3,8);
+    g.fillStyle(0xf39b3b).fillRect(-5,-9,10,7).fillRect(punta,-15,4,10);
+    g.fillStyle(0xffda73).fillRect(-2,-6,5,4).fillRect(0,-9,2,4);
+    g.fillStyle(0xffbc53).fillRect(4 + fase,-20 - fase * 2,2,2);
   }
 
   crearRuka() {
@@ -446,6 +493,16 @@ export class EscenaJuego extends Phaser.Scene {
     const base = y + alto / 2;
     this.rukaVisual = this.add.image(x, base, 'ruka')
       .setOrigin(0.5, 1).setScale(ESCALA_PIXEL).setDepth(base);
+    const brasero = this.add.graphics().setPosition(x - 75, base + 21).setDepth(base + 21);
+    brasero.fillStyle(0x29332b).fillRect(-15, -3, 32, 8);
+    for (const [dx, dy] of [[-15,-4],[-9,-8],[2,-8],[10,-5],[10,1],[-2,3],[-12,1]]) {
+      brasero.fillStyle(0x60665d).fillRect(dx, dy, 7, 4);
+      brasero.fillStyle(0x989a82).fillRect(dx, dy, 5, 1);
+    }
+    brasero.fillStyle(0x653d2a).fillRect(-10,-4,20,5);
+    brasero.fillStyle(0xb97b45).fillRect(-9,-3,5,3);
+    this.llama = this.add.graphics().setPosition(brasero.x, brasero.y - 3).setDepth(brasero.depth + 0.1);
+    this.dibujarLlama(0);
     banderaRuka(this, x + 43, base - 90, true).setDepth(base - 1);
     this.humoRuka = this.add.image(x + 8, base - 88, 'humo-0')
       .setOrigin(0.5, 1).setScale(2).setDepth(base - 1);
@@ -467,29 +524,23 @@ export class EscenaJuego extends Phaser.Scene {
     this.physics.add.existing(barreraMontana, true);
     this.obstaculosNaturales.push(barreraMontana);
 
-    // Encadenar hitboxes circulares sobre la misma spline que dibuja el río
-    // evita que queden huecos en las curvas y bloquea el cruce de ribera a ribera.
-    const curva = new Phaser.Curves.Spline(mapa.rio.map(([x, y]) => new Phaser.Math.Vector2(x, y)));
-    const puntos = curva.getPoints(520);
-    for (let i = 0; i < puntos.length; i += 8) {
-      const punto = puntos[i];
-      const zona = this.add.zone(punto.x, punto.y, 124, 124);
-      this.physics.add.existing(zona, true);
-      zona.body.setCircle(62);
-      this.obstaculosNaturales.push(zona);
+    // Franjas contiguas siguen el cauce y dejan libre solo el tablero.
+    const { y, semialto } = this.puente;
+    let indice = 0;
+    for (let cima = 0; cima < mundo.alto;) {
+      const fondo = Math.min(cima + 12, mundo.alto,
+        cima < y - semialto ? y - semialto : cima < y + semialto ? y + semialto : Infinity);
+      const medio = (cima + fondo) / 2;
+      while (indice + 1 < this.cauce.length - 1 && this.cauce[indice + 1].y < medio) indice++;
+      if (medio < y - semialto || medio > y + semialto) {
+        const a = this.cauce[indice], b = this.cauce[indice + 1];
+        const x = a.x + (b.x - a.x) * (medio - a.y) / (b.y - a.y);
+        const zona = this.add.zone(x, medio, 124, fondo - cima);
+        this.physics.add.existing(zona, true);
+        this.obstaculosNaturales.push(zona);
+      }
+      cima = fondo;
     }
-    const ultimo = puntos[puntos.length - 1];
-    const zonaFinal = this.add.zone(ultimo.x, ultimo.y, 124, 124);
-    this.physics.add.existing(zonaFinal, true);
-    zonaFinal.body.setCircle(62);
-    this.obstaculosNaturales.push(zonaFinal);
-
-    // El cauce continúa fuera del borde inferior del mapa; prolongamos la
-    // barrera hasta el límite del mundo para que no se pueda rodear por abajo.
-    const zonaBordeInferior = this.add.zone(ultimo.x, mundo.alto - 14, 124, 124);
-    this.physics.add.existing(zonaBordeInferior, true);
-    zonaBordeInferior.body.setCircle(62);
-    this.obstaculosNaturales.push(zonaBordeInferior);
   }
 
   crearJugador() {

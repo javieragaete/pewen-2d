@@ -1,5 +1,5 @@
 import { CONFIG } from '../config.js';
-import { mostrarTecla } from '../settings.js';
+import { mostrarTecla, reproducirEfectoAudio } from '../settings.js';
 import { ESCALA_PIXEL, dibujarMarcoPixel } from '../sprites.js';
 
 const { pantalla, mundo, mapa, recoleccion, paletaPixel } = CONFIG;
@@ -19,8 +19,6 @@ function mezclar(elementos) {
   }
   return resultado;
 }
-
-import { volumenCanal } from '../settings.js';
 
 export class Recoleccion {
   constructor(escena, alRecolectar, controles) {
@@ -253,20 +251,13 @@ export class Recoleccion {
         this.recolectar(pewen, recoleccion.permiso);
       });
     } else {
+      reproducirEfectoAudio(this.escena, 'sfx-tomar-sin-permiso', 0.78);
       this.recolectar(pewen, recoleccion.directa);
     }
   }
 
   recolectar(pewen, efecto) {
-    const sonido = () => this.escena.sound.play('sfx-pinon-recoger', {
-      volume: 0.9 * volumenCanal('effects')
-    });
-    if (this.escena.sound.locked) {
-      this.escena.sound.once(globalThis.Phaser.Sound.Events.UNLOCKED, sonido);
-      this.escena.sound.unlock();
-    } else {
-      sonido();
-    }
+    reproducirEfectoAudio(this.escena, 'sfx-pinon-recoger', 0.9);
     pewen.recolectado = true;
     pewen.pinones.setVisible(false);
     const limite = CONFIG.partida.metaPinones;

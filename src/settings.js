@@ -82,6 +82,20 @@ export function volumenCanal(canal) {
   return audio[canal] ?? 1;
 }
 
+export function reproducirEfectoAudio(escena, clave, volumen = 1) {
+  if (!escena?.sound || !escena.cache?.audio?.exists(clave)) return;
+
+  const sonar = () => escena.sound.play(clave, {
+    volume: volumen * volumenCanal('effects')
+  });
+  if (escena.sound.locked) {
+    escena.sound.once(globalThis.Phaser.Sound.Events.UNLOCKED, sonar);
+    escena.sound.unlock();
+  } else {
+    sonar();
+  }
+}
+
 export function aplicarIluminacion(escena, preferencias = cargarPreferencias()) {
   escena.game.canvas.style.filter = 'brightness(' + preferencias.iluminacion.brillo + '%)';
 }
