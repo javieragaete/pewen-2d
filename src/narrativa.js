@@ -123,6 +123,7 @@ export class GestorJornadas {
       if (this.jornada < jornadas.cantidad) {
         this.jornada++;
         this.entregadoJornada = 0;
+        this.escena.recoleccion.reponerPinones();
         this.iniciarJornada(this.escena.time.now);
       } else {
         this.estado = 'completa';
