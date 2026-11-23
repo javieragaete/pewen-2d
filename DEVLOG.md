@@ -54,6 +54,7 @@
 
 - Añadidos destello breve de permiso y partículas de piñón al recolectar.
 - Ajustado el tamaño de los tiles y el detalle del suelo tras revisión visual para reducir ruido.
+- Simplificado el cielo del menú tras la comprobación visual para que el patrón repetido no generara motas excesivas.
 - Corregido un error de ejecución del menú: `setSize` no estaba disponible en el objeto de fondo tileado y se eliminó esa llamada.
 - Todo el arte continúa siendo generado desde matrices y código; no se añadieron recursos de terceros.
 
