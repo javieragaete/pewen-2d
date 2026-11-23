@@ -2,6 +2,7 @@ import { CONFIG } from '../config.js';
 import { cargarPreferencias, mostrarAsignacion, volumenCanal } from '../settings.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
+import { ExtraHackathon } from '../extra-hackathon.js';
 import { ESCALA_PIXEL, dibujarMarcoPixel, registrarSpritesPixel } from '../sprites.js';
 import { GestorJornadas } from '../narrativa.js';
 
@@ -47,6 +48,7 @@ export class EscenaJuego extends Phaser.Scene {
     this.recoleccion.actualizarEquilibrio(this.equilibrio);
     this.hud = new Hud(this);
     this.jornadas = new GestorJornadas(this);
+    this.extraHackathon = new ExtraHackathon(this);
     this.restaurarPartida();
 
     this.movimiento = Object.fromEntries(['up', 'down', 'left', 'right'].map(direccion =>
@@ -103,6 +105,7 @@ export class EscenaJuego extends Phaser.Scene {
       this.inicioPausa = undefined;
     }
     this.pausado = forzar;
+    if (this.pausado) this.extraHackathon.actualizar(false);
     this.panelPausa.setVisible(this.pausado);
   }
 
@@ -115,6 +118,7 @@ export class EscenaJuego extends Phaser.Scene {
       newen: this.newen,
       equilibrio: this.equilibrio,
       pinones: this.recoleccion.pinones,
+      completoConsumido: !this.extraHackathon.disponible,
       recolectados: this.recoleccion.pewenes.map(pewen => pewen.recolectado)
     };
     try {
@@ -132,6 +136,7 @@ export class EscenaJuego extends Phaser.Scene {
       const datos = JSON.parse(localStorage.getItem('pewen-partida'));
       if (!datos) return;
       this.newen = datos.newen;
+      if (datos.completoConsumido === true) this.extraHackathon.marcarCompletoConsumido();
       this.equilibrio = datos.equilibrio;
       this.recoleccion.pinones = datos.pinones;
       this.recoleccion.pewenes.forEach((pewen, i) => {
@@ -444,6 +449,7 @@ export class EscenaJuego extends Phaser.Scene {
     }
     const reloj = this.jornadas.actualizar(tiempo);
     if (!reloj.libre) {
+      this.extraHackathon.actualizar(false);
       this.personaje.body.setVelocity(0, 0);
       this.indicadorDescanso.setVisible(false);
       this.hud.actualizar(this.newen, this.equilibrio, this.recoleccion.pinones, reloj.segundos, this.jornadas.totalLof);
@@ -471,6 +477,7 @@ export class EscenaJuego extends Phaser.Scene {
     // Normalizar mantiene la misma velocidad en línea recta y en diagonal.
     velocidad.set(x, y).normalize().scale(jugador.velocidad * factor);
     const bloqueado = this.recoleccion.ocupaAlJugador;
+    this.extraHackathon.actualizar(!bloqueado);
     if (bloqueado) velocidad.set(0, 0);
     this.actualizarAnimacionJugador(x, y, tiempo, bloqueado);
     personaje.setDepth(personaje.y);

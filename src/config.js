@@ -21,7 +21,7 @@ export const CONFIG = {
     newenInicial: 100,
     equilibrioInicial: 50,
     maximoBarra: 100,
-    metaPinones: 20,
+    metaPinones: 23,
     duracionJornada: 120,
     desgastePorSegundo: 1.4,
     descansoPorSegundo: 22,
@@ -38,8 +38,8 @@ export const CONFIG = {
     alcance: 82,
     pausaPermiso: 950,
     duracionAviso: 1400,
-    permiso: { pinones: 3, equilibrio: 5, newen: -5 },
-    directa: { pinones: 8, equilibrio: -15, newen: -10 }
+    permiso: { pinones: 2, equilibrio: 5, newen: -5 },
+    directa: { pinones: 4, equilibrio: -15, newen: -10 }
   },
   mapa: {
     // Todos los pewenes quedan en la ribera inicial, al oeste del río.

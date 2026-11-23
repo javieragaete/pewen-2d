@@ -2,7 +2,7 @@ import { CONFIG } from '../config.js';
 import { aplicarIluminacion, actualizarVolumen, volumenCanal } from '../settings.js';
 import { textoPixel } from '../tipografia.js';
 import { registrarSpritesPixel } from '../sprites.js';
-import { dibujarFondoMenu } from '../paisaje-menu.js';
+import { dibujarFondoMenu, precargarLogoMenu } from '../paisaje-menu.js';
 
 const Phaser = globalThis.Phaser;
 const { pantalla, menu, paletaPixel } = CONFIG;
@@ -15,6 +15,7 @@ export class EscenaMenu extends Phaser.Scene {
   }
 
   preload() {
+    precargarLogoMenu(this);
     this.load.audio('sfx-boton-enfocar', new URL('../../assets/audio/efectos/boton-enfocar.wav', import.meta.url).href);
     this.load.audio('sfx-boton-activar', new URL('../../assets/audio/efectos/boton-activar.wav', import.meta.url).href);
     this.load.on('loaderror', archivo => {
