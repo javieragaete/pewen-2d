@@ -8,7 +8,7 @@ const REPORTAJE = [
   'Deja piñones en el suelo para que broten.',
   'Desde la cordillera, informó Bodoque.'
 ];
-const ARBOL = { x: 615, y: 875 };
+
 const color = hex => Number.parseInt(hex.slice(1), 16);
 
 export class ExtraHackathon {
@@ -18,7 +18,9 @@ export class ExtraHackathon {
     this.lineaReporte = -1;
     this.activo = false;
 
-    this.tarjeta = escena.add.container(ARBOL.x - 260, ARBOL.y - 121)
+    const x = escena.puente.x - 112;
+    const piesY = escena.puente.y - escena.puente.semialto - 12;
+    this.tarjeta = escena.add.container(x - 194, piesY - 121)
       .setDepth(mundo.alto + 8).setVisible(false);
     this.dibujarNube();
     this.texto(this.tarjeta, 10, 7, 'Nota Verde', 12, '#365342');
@@ -29,7 +31,7 @@ export class ExtraHackathon {
       else this.avanzarReporte();
     });
 
-    this.bodoque = escena.add.graphics({ x: ARBOL.x - 66, y: ARBOL.y - 23 }).setDepth(ARBOL.y - 0.5);
+    this.bodoque = escena.add.graphics({ x, y: piesY - 23 }).setDepth(piesY);
     this.dibujarBodoque();
   }
 
