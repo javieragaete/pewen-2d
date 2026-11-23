@@ -14,6 +14,10 @@ export class EscenaJuego extends Phaser.Scene {
     super('Juego');
   }
 
+  init(datos = {}) {
+    this.cargarGuardado = Boolean(datos.cargar);
+  }
+
   create() {
     registrarSpritesPixel(this);
     this.physics.world.setBounds(0, 0, mundo.ancho, mundo.alto);
@@ -28,6 +32,7 @@ export class EscenaJuego extends Phaser.Scene {
     this.recoleccion.actualizarEquilibrio(this.equilibrio);
     this.hud = new Hud(this);
     this.jornadas = new GestorJornadas(this);
+    this.restaurarPartida();
 
     this.flechas = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys('W,A,S,D');
@@ -40,10 +45,100 @@ export class EscenaJuego extends Phaser.Scene {
     const ayudaControl = this.add.text(24, pantalla.alto - 40, 'Flechas o WASD · Mover', {
       fontFamily: mono, fontSize: '16px', color: paletaPixel.nieve
     }).setScrollFactor(0).setDepth(mundo.alto + 1);
+    this.crearPausa();
     this.time.delayedCall(8000, () => this.tweens.add({
       targets: [marcoAyuda, ayudaControl], alpha: 0, duration: 500,
       onComplete: () => { marcoAyuda.setVisible(false); ayudaControl.setVisible(false); }
     }));
+  }
+
+  crearPausa() {
+    const fondo = this.add.rectangle(pantalla.ancho / 2, pantalla.alto / 2, pantalla.ancho, pantalla.alto, 0x101412, 0.82);
+    const titulo = this.add.text(pantalla.ancho / 2, 270, 'Juego en pausa', { fontFamily: mono, fontSize: '32px', color: paletaPixel.nieve }).setOrigin(0.5);
+    const guardar = this.add.text(pantalla.ancho / 2, 360, '[ Guardar y volver al menú ]', { fontFamily: mono, fontSize: '22px', color: paletaPixel.musgo }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const seguir = this.add.text(pantalla.ancho / 2, 420, '[ Continuar ]', { fontFamily: mono, fontSize: '20px', color: paletaPixel.nieve }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const zonaGuardar = this.add.zone(pantalla.ancho / 2, 360, 520, 58).setInteractive({ useHandCursor: true });
+    const zonaSeguir = this.add.zone(pantalla.ancho / 2, 420, 300, 54).setInteractive({ useHandCursor: true });
+    this.panelPausa = this.add.container(0, 0, [fondo, titulo, zonaGuardar, zonaSeguir, guardar, seguir]).setScrollFactor(0).setDepth(mundo.alto + 30).setVisible(false);
+    this.pausado = false;
+    this.manejarEsc = () => this.alternarPausa();
+    this.input.keyboard.on('keydown-ESC', this.manejarEsc);
+    this.events.once('shutdown', () => this.input.keyboard.off('keydown-ESC', this.manejarEsc));
+    this.manejarClickPausa = pointer => {
+      if (!this.pausado && pointer.x >= pantalla.ancho - 112 && pointer.y <= 76) {
+        this.alternarPausa(true);
+      } else if (this.pausado && pointer.x >= 340 && pointer.x <= 940) {
+        if (pointer.y >= 320 && pointer.y <= 395) this.guardarYSalir();
+        else if (pointer.y >= 396 && pointer.y <= 465) this.alternarPausa(false);
+      }
+    };
+    this.input.on('pointerdown', this.manejarClickPausa);
+    this.events.once('shutdown', () => this.input.off('pointerdown', this.manejarClickPausa));
+    this.botonPausa = this.add.text(pantalla.ancho - 54, 22, 'Ⅱ', { fontFamily: mono, fontSize: '22px', color: paletaPixel.nieve, backgroundColor: paletaPixel.tinta, padding: { x: 10, y: 5 } })
+      .setScrollFactor(0).setDepth(mundo.alto + 10).setInteractive({ useHandCursor: true });
+  }
+
+  alternarPausa(forzar = !this.pausado) {
+    if (forzar === this.pausado) return;
+    if (forzar) {
+      this.inicioPausa = this.time.now;
+      this.personaje.body.setVelocity(0, 0);
+    } else if (this.inicioPausa !== undefined && this.jornadas.finJornada !== null) {
+      this.jornadas.finJornada += this.time.now - this.inicioPausa;
+      this.inicioPausa = undefined;
+    }
+    this.pausado = forzar;
+    this.panelPausa.setVisible(this.pausado);
+  }
+
+  guardarPartida() {
+    const datos = {
+      jornada: this.jornadas.jornada,
+      totalLof: this.jornadas.totalLof,
+      entregadoJornada: this.jornadas.entregadoJornada,
+      segundosRestantes: this.jornadas.segundosRestantes ?? partida.duracionJornada,
+      newen: this.newen,
+      equilibrio: this.equilibrio,
+      pinones: this.recoleccion.pinones,
+      recolectados: this.recoleccion.pewenes.map(pewen => pewen.recolectado)
+    };
+    try {
+      localStorage.setItem('pewen-partida', JSON.stringify(datos));
+      return true;
+    } catch (error) {
+      console.error('No se pudo guardar la partida:', error);
+      return false;
+    }
+  }
+
+  restaurarPartida() {
+    if (!this.cargarGuardado) return;
+    try {
+      const datos = JSON.parse(localStorage.getItem('pewen-partida'));
+      if (!datos) return;
+      this.newen = datos.newen;
+      this.equilibrio = datos.equilibrio;
+      this.recoleccion.pinones = datos.pinones;
+      this.recoleccion.pewenes.forEach((pewen, i) => {
+        pewen.recolectado = Boolean(datos.recolectados?.[i]);
+        pewen.pinones.setVisible(!pewen.recolectado);
+      });
+      Object.assign(this.jornadas, {
+        jornada: datos.jornada,
+        totalLof: datos.totalLof,
+        entregadoJornada: datos.entregadoJornada,
+        estado: 'libre',
+        segundosRestantes: datos.segundosRestantes,
+        finJornada: this.time.now + datos.segundosRestantes * 1000
+      });
+    } catch {
+      localStorage.removeItem('pewen-partida');
+    }
+  }
+
+  guardarYSalir() {
+    if (!this.guardarPartida()) return;
+    this.scene.start('Menu');
   }
 
   dibujarMapa() {
@@ -277,6 +372,10 @@ export class EscenaJuego extends Phaser.Scene {
   }
 
   update(tiempo, delta) {
+    if (this.pausado) {
+      this.personaje.body.setVelocity(0, 0);
+      return;
+    }
     const reloj = this.jornadas.actualizar(tiempo);
     if (!reloj.libre) {
       this.personaje.body.setVelocity(0, 0);

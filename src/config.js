@@ -42,7 +42,8 @@ export const CONFIG = {
     directa: { pinones: 8, equilibrio: -15, newen: -10 }
   },
   mapa: {
-    pewenes: [[430, 405], [720, 520], [615, 875], [1330, 640]],
+    // Todos los pewenes quedan en la ribera inicial, al oeste del río.
+    pewenes: [[430, 405], [720, 520], [615, 875], [900, 640]],
     ruka: { x: 222, y: 580, ancho: 126, alto: 44 },
     semilla: 29,
     decoracion: {

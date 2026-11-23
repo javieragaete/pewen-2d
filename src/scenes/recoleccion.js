@@ -56,6 +56,13 @@ export class Recoleccion {
     });
   }
 
+  reponerPinones() {
+    for (const pewen of this.pewenes) {
+      pewen.recolectado = false;
+      pewen.pinones.setVisible(true);
+    }
+  }
+
   actualizar(personaje) {
     // Consumir las pulsaciones incluso durante la pausa evita abrir otro menú al terminar.
     const interactuar = Input.Keyboard.JustDown(this.teclas.interactuar);
