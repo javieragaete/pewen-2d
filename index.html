@@ -16,9 +16,23 @@
   <main id="juego" aria-label="Pewén">
     <p id="estado" role="status" hidden></p>
   </main>
+  <script>
+    window.addEventListener('error', event => {
+      const estado = document.querySelector('#estado');
+      if (estado) {
+        estado.hidden = false;
+        estado.style.cssText = 'position:fixed;inset:1rem auto auto 1rem;z-index:10;max-width:calc(100vw - 2rem);padding:1rem;background:#211d1d;color:#ffd3c9;white-space:pre-wrap;text-align:left;overflow-wrap:anywhere';
+        estado.textContent = `Error al iniciar el juego: ${event.message}\n${event.filename}:${event.lineno}:${event.colno}\n${event.error?.stack || ''}`;
+      }
+    });
+    window.addEventListener('unhandledrejection', event => {
+      const estado = document.querySelector('#estado');
+      if (estado) { estado.hidden = false; estado.textContent = `Error al cargar el juego: ${event.reason?.message || event.reason}`; }
+    });
+  </script>
   <script src="vendor/phaser.min.js"></script>
+  <script src="vendor/phaser-raycaster.min.js"></script>
+  <script src="vendor/rexhsladjustpipelineplugin.min.js"></script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
-
-

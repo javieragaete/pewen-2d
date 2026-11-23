@@ -66,3 +66,10 @@
 - La publicación de GitHub Pages todavía no está disponible (404); la verificación se hizo en servidor local.
 - No se modificaron controles ni valores de configuración o mecánicas.
 
+## Interfaz, controles y pausa
+
+- El menú pixel art conserva su presentación y ofrece **Jugar** y **Configuración**.
+- La configuración guarda volúmenes y controles; flechas y WASD funcionan como asignaciones principal y secundaria. **Esc** abre la pausa, desde la que se puede continuar, configurar o volver al menú.
+- El HUD presenta las teclas seleccionadas durante 15 segundos después del primer movimiento.
+- Las partículas de recolección y la pulsación del personaje se conservan. Se retiró la luz puntual del jugador porque sobreexponía el mapa; el ajuste HSL de Rex solo se aplica con WebGL y Raycaster comprueba la línea de visión.
+- La configuración local del menú vuelve a `Menu` al cerrar, con los controles y el arte más recientes de `origin/main` integrados.

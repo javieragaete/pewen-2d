@@ -19,6 +19,7 @@ export class Hud {
     this.equilibrio = escena.add.text(282, 10, '', estilo);
     this.pinones = escena.add.text(538, 20, '', estilo);
     this.reloj = escena.add.text(1188, 20, '', { ...estilo, align: 'right' }).setOrigin(1, 0);
+    this.pausa = escena.add.text(1188, 48, 'ESC · Pausa', { ...estilo, fontSize: '14px', color: paletaPixel.musgo }).setOrigin(1, 0);
     this.iconoPinon = escena.add.image(510, 31, 'icono-pinon').setScale(1);
     this.iconoReloj = escena.add.image(1134, 31, 'icono-reloj').setScale(1);
     this.iconoNewen = escena.add.image(28, 20, 'icono-newen').setScale(1);
@@ -36,11 +37,14 @@ export class Hud {
 
     escena.add.container(24, 20, [
       panel, this.iconoNewen, this.newen, this.iconoEquilibrio, this.equilibrio,
-      this.iconoPinon, this.pinones, this.iconoReloj, this.reloj, this.barras, this.descanso
+      this.iconoPinon, this.pinones, this.iconoReloj, this.reloj, this.pausa, this.barras, this.descanso
     ]).setScrollFactor(0).setDepth(mundo.alto + 4);
+    this.ayudaControles = escena.add.text(24, 104, '', {
+      ...estilo, fontSize: '16px', backgroundColor: paletaPixel.tinta, padding: { x: 10, y: 7 }
+    }).setScrollFactor(0).setDepth(mundo.alto + 5).setVisible(false);
   }
 
-  actualizar(newen, equilibrio, pinones, segundos, descansando) {
+  actualizar(newen, equilibrio, pinones, segundos, descansando, mostrarControles = false, avisoControles = '') {
     newen = Math.ceil(newen);
     equilibrio = Math.round(equilibrio);
     this.newen.setText('Newen ' + newen);
@@ -49,6 +53,7 @@ export class Hud {
     const minutos = Math.floor(segundos / 60);
     this.reloj.setText('Jornada ' + minutos + ':' + String(segundos % 60).padStart(2, '0'));
     this.descanso.setVisible(descansando);
+    this.ayudaControles.setText(avisoControles).setVisible(mostrarControles);
 
     const ancho = 190;
     this.barras.clear();
@@ -61,5 +66,3 @@ export class Hud {
     this.barras.fillStyle(color('verde')).fillRect(252, 45, (ancho - 4) * equilibrio / partida.maximoBarra, 8);
   }
 }
-
-

@@ -2,6 +2,8 @@ import { CONFIG } from '../config.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
 import { ESCALA_PIXEL, registrarSpritesPixel } from '../sprites.js';
+import { cargarPreferencias, mostrarAsignacion, actualizarVolumen } from '../settings.js';
+import PhaserJuice from '../../vendor/phaserJuice.min.js';
 
 const { pantalla, mundo, jugador, camara, mapa, partida, paletaPixel } = CONFIG;
 const Phaser = globalThis.Phaser;
@@ -14,33 +16,96 @@ export class EscenaJuego extends Phaser.Scene {
   }
 
   create() {
+    actualizarVolumen(this);
+    this.preferencias = cargarPreferencias();
     registrarSpritesPixel(this);
     this.physics.world.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.dibujarMapa();
     this.crearRuka();
     this.crearJugador();
+    this.crearEfectosVisuales();
     this.newen = partida.newenInicial;
     this.equilibrio = partida.equilibrioInicial;
     this.posicionAnterior = new Phaser.Math.Vector2(this.personaje.x, this.personaje.y);
-    this.recoleccion = new Recoleccion(this, efecto => this.aplicarRecoleccion(efecto));
+    this.recoleccion = new Recoleccion(this, efecto => this.aplicarRecoleccion(efecto), this.preferencias.controles);
     this.estadoPaisaje = 'normal';
     this.recoleccion.actualizarEquilibrio(this.equilibrio);
     this.hud = new Hud(this);
     this.finJornada = null;
+    this.avisoControlesTermina = 0;
+    this.avisoControlesMostrado = false;
 
-    this.flechas = this.input.keyboard.createCursorKeys();
-    this.wasd = this.input.keyboard.addKeys('W,A,S,D');
+    this.actualizarControles();
     this.cameras.main.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.cameras.main.startFollow(this.personaje, true, camara.seguimiento, camara.seguimiento);
 
-    const marcoAyuda = this.add.graphics({ x: 12, y: pantalla.alto - 54 });
-    marcoAyuda.fillStyle(color('tinta')).fillRect(0, 0, 264, 40);
-    marcoAyuda.fillStyle(color('musgo')).fillRect(0, 0, 264, 3);
-    marcoAyuda.fillRect(0, 37, 264, 3).fillRect(0, 0, 3, 40).fillRect(261, 0, 3, 40);
-    marcoAyuda.setScrollFactor(0).setDepth(mundo.alto + 1);
-    this.add.text(26, pantalla.alto - 44, 'Flechas o WASD · Mover', {
-      fontFamily: mono, fontSize: '16px', color: paletaPixel.nieve
-    }).setScrollFactor(0).setDepth(mundo.alto + 1);
+    this.input.keyboard.on('keydown-ESC', this.abrirPausa, this);
+    this.events.once('shutdown', () => this.input.keyboard.off('keydown-ESC', this.abrirPausa, this));
+
+  }
+
+  abrirPausa() {
+    if (this.scene.isActive('Pausa') || this.scene.isActive('Configuracion')) return;
+    this.scene.launch('Pausa');
+    this.scene.pause();
+  }
+
+  actualizarControles() {
+    this.preferencias = cargarPreferencias();
+    const codigo = Phaser.Input.Keyboard.KeyCodes;
+    const crearTecla = nombre => this.input.keyboard.addKey(codigo[nombre]);
+    this.teclasMovimiento = Object.fromEntries(['up', 'down', 'left', 'right'].map(direccion => [
+      direccion, this.preferencias.controles[direccion].filter(Boolean).map(crearTecla)
+    ]));
+    this.recoleccion?.actualizarControles(this.preferencias.controles);
+  }
+
+  crearEfectosVisuales() {
+    this.juice = new PhaserJuice(this);
+    if (!this.textures.exists('particula-pinon')) {
+      const pixel = this.make.graphics({ x: 0, y: 0, add: false });
+      pixel.fillStyle(color('madera')).fillRect(0, 1, 4, 3);
+      pixel.fillStyle(color('musgo')).fillRect(1, 0, 2, 1);
+      pixel.generateTexture('particula-pinon', 4, 4);
+      pixel.destroy();
+    }
+    this.particulasPinones = this.add.particles(0, 0, 'particula-pinon', {
+      emitting: false, maxParticles: 48,
+      lifespan: { min: 350, max: 620 }, speed: { min: 42, max: 115 },
+      angle: { min: 235, max: 305 }, gravityY: 115,
+      scale: { start: 1.4, end: 0.15 }, alpha: { start: 0.95, end: 0 },
+      tint: [color('madera'), color('musgo'), color('roca')]
+    }).setDepth(mundo.alto + 1);
+
+    if (this.rexHslAdjust && this.game.renderer.type === Phaser.WEBGL) {
+      this.filtroRex = this.rexHslAdjust.add(this.figuraJugador, { satAdjust: 1.05, lumAdjust: 0.51 });
+    }
+    if (this.raycasterPlugin && this.arbolesOclusion?.length) {
+      this.raycaster = this.raycasterPlugin.createRaycaster({
+        boundingBox: new Phaser.Geom.Rectangle(0, 0, mundo.ancho, mundo.alto), debug: false
+      });
+      this.raycaster.mapGameObjects(this.arbolesOclusion, false);
+      this.rayoVision = this.raycaster.createRay();
+    }
+  }
+
+  hayLineaDeVista(origen, destino) {
+    if (!this.rayoVision) return true;
+    const distancia = Phaser.Math.Distance.Between(origen.x, origen.y, destino.x, destino.y);
+    this.rayoVision.setOrigin(origen.x, origen.y)
+      .setAngle(Phaser.Math.Angle.Between(origen.x, origen.y, destino.x, destino.y))
+      .setRayRange(distancia).setDetectionRange(distancia);
+    const impacto = this.rayoVision.cast();
+    if (!impacto || !impacto.object) return true;
+    return Phaser.Math.Distance.Between(origen.x, origen.y, impacto.x, impacto.y) >= distancia - 5;
+  }
+
+  animarRecoleccion(pewen) {
+    this.particulasPinones.explode(14, pewen.x, pewen.y - 18);
+    this.juice.pulse(this.figuraJugador, {
+      scaleX: ESCALA_PIXEL * 1.08, scaleY: ESCALA_PIXEL * 1.08,
+      duration: 125, repeat: 1, yoyo: true, ease: 'Quad.easeOut'
+    });
   }
 
   dibujarMapa() {
@@ -147,8 +212,8 @@ export class EscenaJuego extends Phaser.Scene {
       this.add.image(x, y, 'roca-' + (i % 2)).setOrigin(0.5, 1).setScale(2).setDepth(y);
       if (i % 3 === 0) this.add.image(x + 16, y, 'arbusto').setOrigin(0.5, 1).setScale(2).setDepth(y + 1);
     }
-    mapa.arboles.forEach(([x, y], indice) => {
-      this.add.image(x, y, 'arbol-nativo-' + (indice % 2))
+    this.arbolesOclusion = mapa.arboles.map(([x, y], indice) => {
+      return this.add.image(x, y, 'arbol-nativo-' + (indice % 2))
         .setOrigin(0.5, 1).setScale(3).setDepth(y);
     });
   }
@@ -214,10 +279,13 @@ export class EscenaJuego extends Phaser.Scene {
   }
 
   update(tiempo, delta) {
-    const { left, right, up, down } = this.flechas;
-    const { W, A, S, D } = this.wasd;
-    const x = Number(right.isDown || D.isDown) - Number(left.isDown || A.isDown);
-    const y = Number(down.isDown || S.isDown) - Number(up.isDown || W.isDown);
+    const { left, right, up, down } = this.teclasMovimiento;
+    const x = Number(right.some(tecla => tecla.isDown)) - Number(left.some(tecla => tecla.isDown));
+    const y = Number(down.some(tecla => tecla.isDown)) - Number(up.some(tecla => tecla.isDown));
+    if (!this.avisoControlesMostrado && (x !== 0 || y !== 0)) {
+      this.avisoControlesMostrado = true;
+      this.avisoControlesTermina = tiempo + 15000;
+    }
     const personaje = this.personaje;
     const moviendose = !this.posicionAnterior.equals(personaje);
     this.posicionAnterior.set(personaje.x, personaje.y);
@@ -241,11 +309,10 @@ export class EscenaJuego extends Phaser.Scene {
 
     this.finJornada ??= tiempo + partida.duracionJornada * 1000;
     const segundosRestantes = Math.max(0, Math.ceil((this.finJornada - tiempo) / 1000));
-    this.hud.actualizar(this.newen, this.equilibrio, this.recoleccion.pinones, segundosRestantes, descansando && this.newen < partida.maximoBarra);
+    const mostrarControles = this.avisoControlesMostrado && tiempo < this.avisoControlesTermina;
+    const controles = this.preferencias.controles;
+    const aviso = `Movimiento: ${mostrarAsignacion(controles.up)} arriba · ${mostrarAsignacion(controles.left)} izquierda · ${mostrarAsignacion(controles.down)} abajo · ${mostrarAsignacion(controles.right)} derecha · ${mostrarAsignacion(controles.interact)} interactuar`;
+    this.hud.actualizar(this.newen, this.equilibrio, this.recoleccion.pinones, segundosRestantes,
+      descansando && this.newen < partida.maximoBarra, mostrarControles, aviso);
   }
 }
-
-
-
-
-

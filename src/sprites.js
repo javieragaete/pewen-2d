@@ -354,10 +354,3 @@ export function crearTexturaDesdeMatriz(escena, clave, matriz) {
   textura.refresh();
   return textura;
 }
-
-
-
-
-
-
-

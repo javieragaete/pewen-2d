@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { mostrarTecla } from '../settings.js';
 
 const { pantalla, mundo, mapa, recoleccion, paletaPixel } = CONFIG;
 const { Input, Math: Matematica } = globalThis.Phaser;
@@ -6,13 +7,14 @@ const mono = 'Consolas, "Courier New", monospace';
 const color = clave => globalThis.Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
 
 export class Recoleccion {
-  constructor(escena, alRecolectar) {
+  constructor(escena, alRecolectar, controles) {
     this.escena = escena;
+    this.controles = controles;
     this.pinones = 0;
     this.alRecolectar = alRecolectar;
     this.estadoPewen = null;
     this.pewenes = mapa.pewenes.map(([x, y]) => this.crearPewen(x, y));
-    this.teclas = escena.input.keyboard.addKeys({ interactuar: 'E', permiso: 'ONE', directa: 'TWO' });
+    this.actualizarControles(controles);
     this.ocupaAlJugador = false;
     this.objetivo = null;
     this.pista = escena.add.text(0, 0, '', {
@@ -33,6 +35,16 @@ export class Recoleccion {
     this.texto = texto;
     this.panel = escena.add.container(pantalla.ancho / 2, pantalla.alto / 2, [panel, texto])
       .setScrollFactor(0).setDepth(mundo.alto + 3).setVisible(false);
+  }
+
+  actualizarControles(controles) {
+    const codigo = Input.Keyboard.KeyCodes;
+    this.controles = controles;
+    this.teclas = {
+      interactuar: this.escena.input.keyboard.addKey(codigo[controles.interact[0]]),
+      permiso: this.escena.input.keyboard.addKey(codigo[controles.permission[0]]),
+      directa: this.escena.input.keyboard.addKey(codigo[controles.direct[0]])
+    };
   }
 
   crearPewen(x, y) {
@@ -70,7 +82,7 @@ export class Recoleccion {
     let distanciaMinima = recoleccion.alcance;
     for (const pewen of this.pewenes) {
       const distancia = Matematica.Distance.Between(personaje.x, personaje.y, pewen.x, pewen.y);
-      if (distancia <= distanciaMinima) {
+      if (distancia <= distanciaMinima && this.escena.hayLineaDeVista(personaje, pewen)) {
         cercano = pewen;
         distanciaMinima = distancia;
       }
@@ -78,13 +90,13 @@ export class Recoleccion {
     this.pista.setVisible(Boolean(cercano));
     if (!cercano) return;
     this.pista.setPosition(cercano.x, cercano.y - 137)
-      .setText(cercano.recolectado ? 'Ya recolectado' : '[E] Interactuar');
+      .setText(cercano.recolectado ? 'Ya recolectado' : `[${mostrarTecla(this.controles.interact[0])}] Interactuar`);
     if (interactuar && !cercano.recolectado) {
       this.aviso?.remove();
       this.objetivo = cercano;
       this.ocupaAlJugador = true;
       this.pista.setVisible(false);
-      this.mostrar('Pewén\n[1] Pedir permiso y tomar lo necesario\n[2] Tomar sin pedir permiso');
+      this.mostrar(`Pewén\n[${mostrarTecla(this.controles.permission[0])}] Pedir permiso y tomar lo necesario\n[${mostrarTecla(this.controles.direct[0])}] Tomar sin pedir permiso`);
     }
   }
 
@@ -128,6 +140,7 @@ export class Recoleccion {
 
   recolectar(pewen, efecto) {
     this.crearParticulas(pewen);
+    this.escena.animarRecoleccion(pewen);
     pewen.recolectado = true;
     pewen.pinones.setVisible(false);
     this.pinones += efecto.pinones;

@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import { registrarSpritesPixel } from '../sprites.js';
+import { cargarPreferencias, mostrarAsignacion } from '../settings.js';
 
 const Phaser = globalThis.Phaser;
 const { pantalla, menu, paletaPixel } = CONFIG;
@@ -55,11 +56,12 @@ export class EscenaMenu extends Phaser.Scene {
   mostrarPrincipal() {
     this.pantallaSecundaria = false;
     this.prepararPantalla(menu.titulo, menu.subtitulo);
-    this.agregarOpcion('Nuevo juego', () => this.scene.start('Juego'));
-    this.agregarOpcion('Cargar partida', null, 'Sin partida guardada');
-    this.agregarOpcion('Cómo jugar', () => this.mostrarSecundaria('Cómo jugar'));
-    this.agregarOpcion('Opciones', () => this.mostrarSecundaria('Opciones'));
-    this.agregarOpcion('Créditos', () => this.mostrarSecundaria('Créditos'));
+    this.agregarOpcion('Jugar', () => this.scene.start('Juego'));
+    this.agregarOpcion('Configuración', () => this.scene.start('Configuracion', { origen: 'Menu' }));
+    const { controles } = cargarPreferencias();
+    this.contenido.add(this.texto(64, 420,
+      `Mover: ${mostrarAsignacion(controles.up)} ${mostrarAsignacion(controles.left)} ${mostrarAsignacion(controles.down)} ${mostrarAsignacion(controles.right)}`,
+      17, paletaPixel.nieve));
     this.seleccionar(0);
   }
 
@@ -134,11 +136,7 @@ export class EscenaMenu extends Phaser.Scene {
     const abajo = [DOWN, S].map(pulsada).some(Boolean);
     const elegir = [ENTER, SPACE].map(pulsada).some(Boolean);
     if (pulsada(ESC) && this.pantallaSecundaria) this.mostrarPrincipal();
-    else if (elegir) this.opciones[this.seleccion].accion();
+    else if (elegir) this.opciones[this.seleccion].accion?.();
     else if (arriba || abajo) this.moverSeleccion(arriba ? -1 : 1);
   }
 }
-
-
-
-
