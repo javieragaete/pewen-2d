@@ -1,6 +1,6 @@
 import { banderaRuka } from '../paisaje-menu.js';
 import { CONFIG } from '../config.js';
-import { cargarPreferencias, mostrarAsignacion, volumenCanal } from '../settings.js';
+import { cargarPreferencias, mostrarAsignacion, reproducirEfectoAudio, volumenCanal } from '../settings.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
 import { ExtraHackathon } from '../extra-hackathon.js';
@@ -27,9 +27,14 @@ export class EscenaJuego extends Phaser.Scene {
 
   preload() {
     if (!this.cache.audio.exists('tema-mapuche-tribal')) this.load.audio('tema-mapuche-tribal', URL_TEMA);
-    this.load.audio('sfx-pinon-recoger', new URL('../../assets/audio/efectos/pinon-recoger.wav', import.meta.url).href);
+    for (const clave of ['pinon-recoger', 'tomar-sin-permiso', 'ambiente-degradar']) {
+      const key = 'sfx-' + clave;
+      if (!this.cache.audio.exists(key)) {
+        this.load.audio(key, new URL(`../../assets/audio/efectos/${clave}.wav`, import.meta.url).href);
+      }
+    }
     this.load.on('loaderror', archivo => {
-      if (archivo.key === 'tema-mapuche-tribal' || archivo.key === 'sfx-pinon-recoger') {
+      if (archivo.key === 'tema-mapuche-tribal' || archivo.key.startsWith('sfx-')) {
         console.error('No se pudo cargar el audio:', archivo.src);
       }
     });
@@ -232,10 +237,23 @@ export class EscenaJuego extends Phaser.Scene {
         caminoTiles.add(x + ',' + y);
       }
     }
-    for (const clave of caminoTiles) {
-      const [x, y] = clave.split(',').map(Number);
-      this.add.image(x, y, 'tile-camino').setOrigin(0).setScale(2).setDepth(-10);
-    }
+    const caminoOrdenado = [...caminoTiles].map(clave => clave.split(',').map(Number));
+    caminoOrdenado.forEach(([x, y], indice) => {
+      const variante = Math.abs(Math.trunc((x / anchoTile) * 7 + (y / anchoTile) * 13)) % 3;
+      this.add.image(x, y, 'tile-camino-' + variante).setOrigin(0).setScale(2).setDepth(-10);
+
+      if (indice % 5 !== 2) return;
+      const anterior = caminoOrdenado[Math.max(0, indice - 1)];
+      const siguiente = caminoOrdenado[Math.min(caminoOrdenado.length - 1, indice + 1)];
+      const dx = siguiente[0] - anterior[0];
+      const dy = siguiente[1] - anterior[1];
+      const largo = Math.hypot(dx, dy) || 1;
+      const lado = Math.floor(indice / 5) % 2 === 0 ? 1 : -1;
+      const piedraX = x + anchoTile / 2 - (dy / largo) * 7 * lado;
+      const piedraY = y + anchoTile / 2 + (dx / largo) * 7 * lado;
+      this.add.image(piedraX, piedraY, 'roca-' + (indice % 2))
+        .setOrigin(0.5).setScale(1).setAlpha(0.9).setDepth(-9);
+    });
 
     // Cauce continuo: una ribera sobria, dos tonos de agua y ondas largas espaciadas.
     const curva = new Phaser.Curves.Spline(mapa.rio.map(([x, y]) => new Phaser.Math.Vector2(x, y)));
@@ -442,10 +460,15 @@ export class EscenaJuego extends Phaser.Scene {
   actualizarEstadoPaisaje(equilibrio) {
     const estado = equilibrio >= 60 ? 'sano' : equilibrio <= 30 ? 'seco' : 'normal';
     if (estado === this.estadoPaisaje) return;
+    const nivelesEstado = { seco: 0, normal: 1, sano: 2 };
+    const ambienteSeDegrada = nivelesEstado[estado] < nivelesEstado[this.estadoPaisaje];
     this.estadoPaisaje = estado;
     this.fondoSuelo?.setTexture('tile-suelo-bosque-' + estado);
     this.terrenoClaro?.setTexture('tile-suelo-claro-' + estado);
     this.recoleccion?.actualizarEquilibrio(equilibrio);
+    if (ambienteSeDegrada) {
+      this.time.delayedCall(180, () => reproducirEfectoAudio(this, 'sfx-ambiente-degradar', 0.72));
+    }
   }
 
   crearRuka() {

@@ -201,7 +201,20 @@ function crearMatrizCielo() {
 function crearTile(base) {
   const matriz = matrizVacia(16, 16);
   for (const fila of matriz) fila.fill(base);
-  // Camino y ribera quedan planos: sin bordes por tile ni grano repetitivo.
+  return guardarMatriz(matriz);
+}
+
+function crearTileCamino(variante) {
+  const matriz = matrizVacia(16, 16);
+  for (const fila of matriz) fila.fill('T');
+
+  const detalles = [
+    [[2, 2, 'S'], [10, 1, 'B'], [13, 5, 'S'], [3, 12, 'B'], [10, 14, 'S'], [5, 7, 'G'], [6, 7, 'H'], [6, 8, 'G']],
+    [[4, 1, 'B'], [14, 3, 'S'], [8, 11, 'B'], [2, 8, 'S'], [12, 14, 'B'], [10, 4, 'G'], [11, 4, 'H'], [11, 5, 'G']],
+    [[2, 6, 'S'], [7, 3, 'B'], [13, 9, 'S'], [5, 14, 'B'], [14, 2, 'S'], [4, 10, 'G'], [5, 10, 'H'], [5, 11, 'G']]
+  ][variante % 3];
+
+  for (const [x, y, tono] of detalles) matriz[y][x] = tono;
   return guardarMatriz(matriz);
 }
 
@@ -409,7 +422,9 @@ export function registrarSpritesPixel(escena) {
     destello: MATRIZ_DESTELLO,
     'onda-0': MATRIZ_ONDA_0,
     'onda-1': MATRIZ_ONDA_1,
-    'tile-camino': crearTile('T'),
+    'tile-camino-0': crearTileCamino(0),
+    'tile-camino-1': crearTileCamino(1),
+    'tile-camino-2': crearTileCamino(2),
     'tile-ribera': crearTile('T'),
     'tile-cielo': crearMatrizCielo()
   };
