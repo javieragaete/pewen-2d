@@ -9,7 +9,7 @@ export class Interior extends Phaser.Scene {
   constructor() { super('Interior'); }
 
   preload() {
-    this.load.audio('tema-mapuche-tribal', URL_TEMA);
+    if (!this.cache.audio.exists('tema-mapuche-tribal')) this.load.audio('tema-mapuche-tribal', URL_TEMA);
     this.load.on('loaderror', archivo => {
       if (archivo.key === 'tema-mapuche-tribal') console.error('No se pudo cargar la música:', archivo.src);
     });
