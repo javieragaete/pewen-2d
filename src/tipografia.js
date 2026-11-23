@@ -20,7 +20,7 @@ const ACENTOS = { '\u0301': [2, 4], '\u0303': [10, 20], '\u0308': [10, 0] };
 // Cada fila guarda los cinco píxeles del glifo. Las tildes se dibujan encima.
 export function textoPixel(escena, x, y, texto, tamano, color) {
   const grafico = escena.add.graphics({ x, y });
-  const pixel = tamano >= 48 ? 7 : tamano >= 25 ? 3 : 2;
+  const pixel = tamano >= 48 ? 7 : tamano >= 32 ? 5 : tamano >= 25 ? 3 : 2;
   const paso = 6 * pixel;
   const puntos = [];
   let columna = 0;
