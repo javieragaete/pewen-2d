@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pewén</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; display: grid; place-items: center; min-height: 100vh; background: #151c19; color: #f3f2e3; font: 16px system-ui, sans-serif; }
+    main { width: min(100vw, 1280px); }
+    canvas { display: block; }
+    p { text-align: center; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <main id="juego" aria-label="Pewén">
+    <p id="estado" role="status" hidden></p>
+  </main>
+  <script src="vendor/phaser.min.js"></script>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
