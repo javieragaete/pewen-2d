@@ -1,3 +1,10 @@
+const LOGO_CODEX = 'nube-logo-codex';
+const URL_CODEX = new URL('../assets/interfaz/codex.png', import.meta.url).href;
+
+export function precargarLogoMenu(escena) {
+  if (!escena.textures.exists(LOGO_CODEX)) escena.load.image(LOGO_CODEX, URL_CODEX);
+}
+
 const PIXEL = 4;
 const COLOR = {
   cielo: 0x4baabe, cenit: 0x367eab, fondo: 0x568fa7, ladera: 0x376a82,
@@ -31,17 +38,25 @@ function montanas(fondo, ancho, puntos, base, color, cumbres) {
   }
 }
 
-function nube(escena, x, y, escala, duracion) {
-  const forma = escena.add.graphics({ x, y }).setDepth(-28).setScale(escala);
+function nube(escena, x, y, escala, duracion, conLogo = false) {
+  const grupo = escena.add.container(x, y).setDepth(-28).setScale(escala);
+  const forma = escena.add.graphics();
+  grupo.add(forma);
   forma.fillStyle(COLOR.nubeSombra)
     .fillRect(4, 20, 153, 16).fillRect(24, 14, 115, 26);
   forma.fillStyle(COLOR.nube)
     .fillRect(0, 23, 152, 7).fillRect(20, 15, 110, 12)
     .fillRect(36, 7, 34, 15).fillRect(66, 0, 29, 24).fillRect(99, 10, 28, 15);
+  if (conLogo && escena.textures.exists(LOGO_CODEX)) {
+    const logo = escena.add.image(79, 18, LOGO_CODEX).setDisplaySize(23, 23).setInteractive({ useHandCursor: true });
+    const secreto = escena.add.text(112, 17, '23', { fontFamily: 'monospace', fontSize: '12px', color: '#294a41' }).setVisible(false);
+    grupo.add([logo, secreto]);
+    logo.on('pointerdown', () => secreto.setVisible(!secreto.visible));
+  }
   if (duracion) {
     escena.tweens.add({
-      targets: forma, x: x + 88, duration: duracion, yoyo: true, repeat: -1,
-      onUpdate: () => { forma.x = cuadricula(forma.x); }
+      targets: grupo, x: x + 88, duration: duracion, yoyo: true, repeat: -1,
+      onUpdate: () => { grupo.x = cuadricula(grupo.x); }
     });
   }
 }
@@ -87,7 +102,7 @@ export function dibujarFondoMenu(escena, anchoPantalla, alto) {
   }
   nube(escena, panel - 64, 116, 1.28, animar ? 21000 : 0);
   nube(escena, panel + 241, 70, 0.8, animar ? 27000 : 0);
-  nube(escena, panel + 483, 147, 1.38, animar ? 24000 : 0);
+  nube(escena, panel + 483, 147, 1.38, animar ? 24000 : 0, true);
 
   const relieve = escena.add.graphics({ x: panel }).setDepth(-26);
   montanas(relieve, ancho, [[0, 325], [136, 190], [260, 316], [410, 219], [530, 310], [640, 239], [720, 275]], 450, COLOR.fondo);

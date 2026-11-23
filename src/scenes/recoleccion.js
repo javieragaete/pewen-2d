@@ -20,6 +20,8 @@ function mezclar(elementos) {
   return resultado;
 }
 
+import { volumenCanal } from '../settings.js';
+
 export class Recoleccion {
   constructor(escena, alRecolectar, controles) {
     this.escena = escena;
@@ -214,13 +216,14 @@ export class Recoleccion {
     });
   }
 
-  crearParticulas(pewen) {
-    for (let i = 0; i < 4; i++) {
-      const pinon = this.escena.add.image(pewen.x + (i - 1.5) * 10, pewen.y - 48 - (i % 2) * 8, 'pinon')
+  crearParticulas(pewen, cantidad) {
+    for (let i = 0; i < cantidad; i++) {
+      const centro = (cantidad - 1) / 2;
+      const pinon = this.escena.add.image(pewen.x + (i - centro) * 10, pewen.y - 48 - (i % 2) * 8, 'pinon')
         .setScale(2).setDepth(pewen.y + 3);
       this.escena.tweens.add({
         targets: pinon,
-        x: pinon.x + (i - 1.5) * 5,
+        x: pinon.x + (i - centro) * 5,
         y: pinon.y - 22 - (i % 2) * 6,
         alpha: 0,
         duration: 320 + i * 25,
@@ -244,18 +247,20 @@ export class Recoleccion {
   }
 
   recolectar(pewen, efecto) {
-    const sonido = () => this.escena.sound.play('sfx-pinon-recoger', { volume: 0.9 });
+    const sonido = () => this.escena.sound.play('sfx-pinon-recoger', {
+      volume: 0.9 * volumenCanal('effects')
+    });
     if (this.escena.sound.locked) {
       this.escena.sound.once(globalThis.Phaser.Sound.Events.UNLOCKED, sonido);
       this.escena.sound.unlock();
     } else {
       sonido();
     }
-    this.crearParticulas(pewen);
     pewen.recolectado = true;
     pewen.pinones.setVisible(false);
     const limite = CONFIG.partida.metaPinones;
     const cantidad = Math.min(efecto.pinones, Math.max(0, limite - this.pinones));
+    this.crearParticulas(pewen, cantidad);
     this.pinones += cantidad;
     this.alRecolectar(efecto);
     this.ocupaAlJugador = false;

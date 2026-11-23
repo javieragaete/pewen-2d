@@ -20,6 +20,20 @@ function normalizarControles(guardados = {}) {
   return controles;
 }
 
+function normalizarVolumen(valor, predeterminado) {
+  return typeof valor === 'number' && Number.isFinite(valor)
+    ? Math.min(1, Math.max(0, valor))
+    : predeterminado;
+}
+
+function normalizarAudio(guardado = {}) {
+  if (!guardado || typeof guardado !== 'object') guardado = {};
+  return Object.fromEntries(Object.entries(PREFERENCIAS_BASE.audio).map(([canal, predeterminado]) => [
+    canal,
+    normalizarVolumen(guardado[canal], predeterminado)
+  ]));
+}
+
 export function cargarPreferencias() {
   try {
     const guardadas = JSON.parse(localStorage.getItem(CLAVE) || '{}');
@@ -29,7 +43,7 @@ export function cargarPreferencias() {
         brillo: Number.isInteger(brillo) && brillo >= BRILLO.minimo && brillo <= BRILLO.maximo
           ? brillo : BRILLO.inicial
       },
-      audio: { ...PREFERENCIAS_BASE.audio, ...guardadas.audio },
+      audio: normalizarAudio(guardadas.audio),
       controles: normalizarControles(guardadas.controles)
     };
   } catch {
@@ -59,14 +73,13 @@ export function teclaDesdeEvento(evento) {
   return ({ ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT', Space: 'SPACE', Escape: 'ESC' })[evento.code] || null;
 }
 
-export function actualizarVolumen(escena) {
-  const { audio } = cargarPreferencias();
-  if (escena.sound) escena.sound.volume = audio.master;
+export function actualizarVolumen(escena, preferencias = cargarPreferencias()) {
+  if (escena.sound) escena.sound.volume = preferencias.audio.master;
 }
 
 export function volumenCanal(canal) {
   const { audio } = cargarPreferencias();
-  return audio.master * (canal === 'music' ? audio.music : audio.effects);
+  return audio[canal] ?? 1;
 }
 
 export function aplicarIluminacion(escena, preferencias = cargarPreferencias()) {
