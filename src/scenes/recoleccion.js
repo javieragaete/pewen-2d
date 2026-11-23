@@ -24,6 +24,7 @@ export class Recoleccion {
   constructor(escena, alRecolectar, controles) {
     this.escena = escena;
     this.pinones = 0;
+    this.pinonesJornada = 0;
     this.alRecolectar = alRecolectar;
     this.estadoPewen = null;
     const tiposIniciales = this.crearTiposPewen(mapa.pewenes.length);
@@ -161,6 +162,7 @@ export class Recoleccion {
     const posiciones = this.generarPosicionesPewen();
     const tipos = this.crearTiposPewen(this.pewenes.length);
     if (posiciones.length !== this.pewenes.length) return;
+    this.pinonesJornada = 0;
     this.pewenes.forEach((pewen, indice) => this.moverPewen(pewen, posiciones[indice].x, posiciones[indice].y, tipos[indice]));
   }
 
@@ -188,14 +190,22 @@ export class Recoleccion {
     this.pista.setPosition(cercano.x, cercano.y - 137)
       .setDepth(cercano.y + 2);
     const limite = CONFIG.partida.metaPinones;
+    const limiteJornada = CONFIG.partida.maximoCosechaJornada;
     const cargaCompleta = this.pinones >= limite;
+    const jornadaCompleta = this.pinonesJornada >= limiteJornada;
     this.pistaTexto.setText(cercano.recolectado ? 'Ya recolectado' : cargaCompleta
-      ? `Carga completa ${limite}/${limite}`
+      ? `Meta completa ${limite}/${limite}`
+      : jornadaCompleta ? `Límite jornada ${limiteJornada}/${limiteJornada}`
       : '[' + mostrarTecla(this.asignaciones.interactuar) + '] Interactuar');
     if (interactuar && !cercano.recolectado) {
       this.aviso?.remove();
       if (cargaCompleta) {
         this.mostrar('No puedes recoger más piñones.\nLímite de carga: ' + limite + '. Vuelve a la ruka.');
+        this.aviso = this.escena.time.delayedCall(recoleccion.duracionAviso, () => this.panel.setVisible(false));
+        return;
+      }
+      if (jornadaCompleta) {
+        this.mostrar('Ya recogiste 7 piñones en esta jornada.\nVuelve en la siguiente jornada.');
         this.aviso = this.escena.time.delayedCall(recoleccion.duracionAviso, () => this.panel.setVisible(false));
         return;
       }
@@ -251,9 +261,16 @@ export class Recoleccion {
     pewen.recolectado = true;
     pewen.pinones.setVisible(false);
     const limite = CONFIG.partida.metaPinones;
-    const cantidad = Math.min(efecto.pinones, Math.max(0, limite - this.pinones));
+    const limiteJornada = CONFIG.partida.maximoCosechaJornada;
+    const recursosDelLof = this.escena.jornadas?.totalLof ?? 0;
+    const cantidad = Math.min(
+      efecto.pinones,
+      Math.max(0, limite - this.pinones - recursosDelLof),
+      Math.max(0, limiteJornada - this.pinonesJornada)
+    );
     this.crearParticulas(pewen, cantidad);
     this.pinones += cantidad;
+    this.pinonesJornada += cantidad;
     this.alRecolectar(efecto);
     this.ocupaAlJugador = false;
     const mensaje = this.pinones >= limite && cantidad < efecto.pinones

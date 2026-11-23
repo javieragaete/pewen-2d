@@ -37,7 +37,16 @@ export class GestorJornadas {
       fontFamily: mono, fontSize: '20px', color: paletaPixel.nieve,
       align: 'center', lineSpacing: 10, wordWrap: { width: 760 }
     }).setOrigin(0.5, 0);
-    this.tarjeta = this.escena.add.container(0, 0, [fondo, marco, this.tituloTarjeta, this.textoTarjeta])
+    this.botonMenu = this.escena.add.text(pantalla.ancho / 2, 476, '[ VOLVER AL MENÚ PRINCIPAL ]', {
+      fontFamily: mono, fontSize: '19px', color: paletaPixel.musgo,
+      backgroundColor: paletaPixel.tinta, padding: { x: 14, y: 9 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setVisible(false);
+    this.botonMenu.on('pointerdown', () => {
+      if (this.estado !== 'completa') return;
+      try { localStorage.removeItem('pewen-partida'); } catch {}
+      this.escena.scene.start('Menu');
+    });
+    this.tarjeta = this.escena.add.container(0, 0, [fondo, marco, this.tituloTarjeta, this.textoTarjeta, this.botonMenu])
       .setScrollFactor(0).setDepth(mundo.alto + 20).setVisible(false);
   }
 
@@ -144,8 +153,15 @@ export class GestorJornadas {
         this.iniciarJornada(this.escena.time.now);
       } else {
         this.estado = 'completa';
-        this.tituloTarjeta.setText('Jornadas completadas');
-        this.textoTarjeta.setText(resumen);
+        const exito = this.totalLof >= partida.metaPinones;
+        this.marcoTarjeta.clear();
+        dibujarMarcoPixel(this.marcoTarjeta, 210, 198, 860, 324, color('tinta'), color('musgo'));
+        this.tituloTarjeta.setPosition(pantalla.ancho / 2, 252)
+          .setText(exito ? '¡Felicidades!' : 'Jornadas completadas');
+        this.textoTarjeta.setPosition(pantalla.ancho / 2, 316).setText(exito
+          ? `Has dejado al lof con suficientes recursos.\nReunieron ${this.totalLof} piñones.`
+          : `El lof reunió ${this.totalLof} de ${partida.metaPinones} piñones.\nPuedes intentarlo de nuevo desde el menú.`);
+        this.botonMenu.setVisible(true);
         this.tarjeta.setVisible(true).setAlpha(1);
         this.escena.resultadoHistoria = {
           totalLof: this.totalLof,

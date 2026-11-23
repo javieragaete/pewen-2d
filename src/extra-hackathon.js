@@ -17,6 +17,7 @@ export class ExtraHackathon {
     this.disponible = true;
     this.lineaReporte = -1;
     this.activo = false;
+    this.reporteTerminado = false;
 
     const x = escena.puente.x - 112;
     const piesY = escena.puente.y - escena.puente.semialto - 12;
@@ -33,6 +34,9 @@ export class ExtraHackathon {
 
     this.bodoque = escena.add.graphics({ x, y: piesY - 23 }).setDepth(piesY);
     this.dibujarBodoque();
+    this.numeroSuelo = escena.add.text(ARBOL.x - 66, ARBOL.y, '23', {
+      fontFamily: 'Consolas, monospace', fontSize: '12px', color: '#92704b'
+    }).setOrigin(0.5, 1).setDepth(ARBOL.y + 0.1).setVisible(false);
   }
 
   dibujarBodoque() {
@@ -127,14 +131,25 @@ export class ExtraHackathon {
 
   avanzarReporte() {
     if (!this.activo) return;
+    if (this.lineaReporte === REPORTAJE.length - 1) {
+      this.finalizarReporte();
+      return;
+    }
     this.lineaReporte = (this.lineaReporte + 1) % REPORTAJE.length;
     this.estado.setText(REPORTAJE[this.lineaReporte]);
-    this.comer.setText(this.lineaReporte === REPORTAJE.length - 1 ? 'Repetir la nota' : 'Siguiente');
+    this.comer.setText(this.lineaReporte === REPORTAJE.length - 1 ? 'Terminar' : 'Siguiente');
+  }
+
+  finalizarReporte() {
+    this.reporteTerminado = true;
+    this.bodoque.setVisible(false);
+    this.tarjeta.setVisible(false);
+    this.numeroSuelo.setVisible(true);
   }
 
   actualizar(activo) {
     if (activo === this.activo) return;
     this.activo = activo;
-    this.tarjeta.setVisible(activo);
+    this.tarjeta.setVisible(activo && !this.reporteTerminado);
   }
 }
