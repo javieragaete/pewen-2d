@@ -10,4 +10,6 @@
 
 ### Verificación
 
-- Pendiente de iniciar el juego y revisar la consola después de desplegar esta etapa.
+- El código de la etapa está guardado en `main`.
+- Intenté abrir la versión en GitHub Pages, pero responde 404 porque aún no hay un sitio publicado. No se pudo iniciar el juego ni comprobar errores de consola o nitidez visual en el navegador.
+- La verificación de ejecución queda pendiente de una versión publicada o de un servidor local.
