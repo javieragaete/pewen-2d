@@ -10,6 +10,18 @@ const COLOR_POR_CARACTER = {
 
 export const ESCALA_PIXEL = 2;
 
+// Marco plano compartido por HUD, ayuda y avisos para mantener una sola jerarquía visual.
+export function dibujarMarcoPixel(grafico, x, y, ancho, alto, relleno, borde) {
+  grafico.clear();
+  grafico.fillStyle(relleno, 1).fillRect(x, y, ancho, alto);
+  grafico.fillStyle(borde, 1)
+    .fillRect(x, y, ancho, 2)
+    .fillRect(x, y + alto - 2, ancho, 2)
+    .fillRect(x, y, 2, alto)
+    .fillRect(x + ancho - 2, y, 2, alto);
+  return grafico;
+}
+
 const PERSONAJE_ABAJO = [
   '......KKKK......','.....KKKKKK.....','.....PPPPPP.....','.....PKKPPK.....',
   '......PPPP......','......RRRR......','....RRRRRRRR....','...RRRRRRRRRR...',
@@ -58,12 +70,31 @@ function guardarMatriz(matriz) {
   return matriz.map(fila => fila.join(''));
 }
 
+function agregarContorno(matriz, color = 'K') {
+  const salida = matriz.map(fila => fila.split(''));
+  for (let y = 0; y < matriz.length; y++) {
+    for (let x = 0; x < matriz[y].length; x++) {
+      if (matriz[y][x] === '.') continue;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const ny = y + dy;
+          const nx = x + dx;
+          if (ny >= 0 && ny < matriz.length && nx >= 0 && nx < matriz[y].length && matriz[ny][nx] === '.') {
+            salida[ny][nx] = color;
+          }
+        }
+      }
+    }
+  }
+  return salida.map(fila => fila.join(''));
+}
+
 function crearMatrizPewen(estado) {
   const matriz = matrizVacia(32, 40);
   const tonos = {
-    sano: { hoja: 'V', brillo: 'M', rama: 'D' },
+    sano: { hoja: 'M', brillo: 'V', rama: 'D' },
     normal: { hoja: 'D', brillo: 'F', rama: 'B' },
-    seco: { hoja: 'G', brillo: 'H', rama: 'B' }
+    seco: { hoja: 'H', brillo: 'G', rama: 'B' }
   }[estado];
   const niveles = [
     { y: 1, ancho: 4 }, { y: 7, ancho: 9 }, { y: 13, ancho: 14 },
@@ -76,8 +107,9 @@ function crearMatrizPewen(estado) {
       const mitad = Math.max(1, Math.floor(nivel.ancho * (0.42 + dy * 0.12)));
       const y = nivel.y + dy;
       for (let dx = -mitad; dx <= mitad; dx++) {
-        const brillo = (Math.abs(dx) + dy + indice) % 6 === 0;
-        matriz[y][centro + dx] = brillo ? tonos.brillo : tonos.hoja;
+        const borde = Math.abs(dx) === mitad || dy === 4 && indice === niveles.length - 1;
+        const ladoClaro = dx < -Math.max(1, Math.floor(mitad * 0.35));
+        matriz[y][centro + dx] = borde ? 'K' : ladoClaro ? tonos.brillo : tonos.hoja;
       }
     }
     const anchoRama = Math.min(15, nivel.ancho + 2);
@@ -92,10 +124,10 @@ function crearMatrizPewen(estado) {
   });
 
   for (let y = 17; y < 40; y++) {
-    matriz[y][15] = y % 4 === 0 ? 'B' : 'W';
-    matriz[y][16] = 'B';
+    matriz[y][14] = 'K'; matriz[y][15] = 'B';
+    matriz[y][16] = 'W'; matriz[y][17] = 'K';
   }
-  return guardarMatriz(matriz);
+  return agregarContorno(guardarMatriz(matriz));
 }
 
 function crearMatrizRuka() {
@@ -116,19 +148,18 @@ function crearMatrizRuka() {
     for (let x = 20; x < 28; x++) matriz[y][x] = 'K';
   }
   for (let x = 8; x < 40; x += 5) matriz[14][x] = 'T';
-  return guardarMatriz(matriz);
+  return agregarContorno(guardarMatriz(matriz));
 }
 
 function crearMatrizArbolNativo(variante) {
   const matriz = matrizVacia(24, 32);
   const copa = variante === 0 ? 'D' : 'F';
-  const brillo = variante === 0 ? 'V' : 'M';
   for (let y = 2; y < 24; y++) {
     for (let x = 2; x < 22; x++) {
       const dx = (x - 12) / 10;
       const dy = (y - 13) / 12;
       if (dx * dx + dy * dy < 1) {
-        matriz[y][x] = ((x * 5 + y * 7 + variante * 3) % 19 === 0) ? brillo : copa;
+        matriz[y][x] = copa;
       }
     }
   }
@@ -140,23 +171,18 @@ function crearMatrizArbolNativo(variante) {
 }
 
 function crearMatrizMontana(variante) {
-  const ancho = 80;
-  const alto = 44;
+  const ancho = 320;
+  const alto = 88;
   const matriz = matrizVacia(ancho, alto);
-  const picos = variante === 0
-    ? [{ x: 16, y: 15 }, { x: 43, y: 3 }, { x: 67, y: 17 }]
-    : [{ x: 13, y: 18 }, { x: 38, y: 6 }, { x: 64, y: 13 }];
+  const centro = variante === 0 ? 126 : 194;
+  const cimaPico = variante === 0 ? 12 : 21;
   for (let x = 0; x < ancho; x++) {
-    let cima = alto;
-    let picoElegido = picos[0];
-    for (const pico of picos) {
-      const y = pico.y + Math.floor(Math.abs(x - pico.x) * 0.62);
-      if (y < cima) { cima = y; picoElegido = pico; }
-    }
-    cima = Math.max(0, cima + ((x + variante) % 5 === 0 ? 1 : 0));
+    const distancia = Math.abs(x - centro);
+    const cima = Math.min(alto, Math.round(cimaPico + distancia * 0.29 + Math.sin(x * 0.045) * 1.5));
     for (let y = cima; y < alto; y++) {
-      const nieve = y < cima + 5 && Math.abs(x - picoElegido.x) < 9 - Math.floor((y - cima) * 1.4);
-      matriz[y][x] = nieve ? 'N' : ((x * 5 + y * 7 + variante * 3) % 19 === 0 ? 'H' : 'G');
+      const nieve = y < cima + 13 && distancia < 22 - Math.floor((y - cima) * 1.3);
+      const faldaClara = x > centro - 82 && x < centro - 12 && y < cima + (centro - x) * 0.42;
+      matriz[y][x] = nieve ? 'N' : faldaClara ? 'H' : 'G';
     }
   }
   return guardarMatriz(matriz);
@@ -168,13 +194,50 @@ function crearMatrizCielo() {
   return guardarMatriz(matriz);
 }
 
-function crearTile(base, acento, brillo, semilla) {
+function crearTile(base) {
   const matriz = matrizVacia(16, 16);
-  for (let y = 0; y < 16; y++) {
-    for (let x = 0; x < 16; x++) {
-      const marca = (x * 5 + y * 11 + semilla) % 53;
-      const borde = x === 0 || y === 0 || x === 15 || y === 15;
-      matriz[y][x] = borde ? base : marca === 0 ? brillo : marca === 7 ? acento : base;
+  for (const fila of matriz) fila.fill(base);
+  // Camino y ribera quedan planos: sin bordes por tile ni grano repetitivo.
+  return guardarMatriz(matriz);
+}
+
+function crearSuelo(base, variacion, semilla) {
+  const ancho = 192;
+  const alto = 192;
+  const matriz = matrizVacia(ancho, alto);
+  for (const fila of matriz) fila.fill(base);
+  // Manchas grandes, suavemente irregulares y sin bordes repetidos en cada píxel.
+  const manchas = [
+    [24 + semilla * 3, 28, 19, 13],
+    [75 - semilla * 2, 68, 23, 16]
+  ];
+  for (const [cx, cy, rx, ry] of manchas) {
+    for (let y = Math.max(0, cy - ry); y < Math.min(alto, cy + ry); y++) {
+      for (let x = Math.max(0, cx - rx); x < Math.min(ancho, cx + rx); x++) {
+        const dx = (x - cx) / rx;
+        const dy = (y - cy) / ry;
+        const deformacion = Math.sin((x + semilla) * 0.16) * 0.07 + Math.cos((y - semilla) * 0.13) * 0.06;
+        if (dx * dx + dy * dy < 1 + deformacion) matriz[y][x] = variacion;
+      }
+    }
+  }
+  return guardarMatriz(matriz);
+}
+
+function crearClaro(base) {
+  const ancho = 384;
+  const alto = 320;
+  const matriz = matrizVacia(ancho, alto);
+  const cx = ancho / 2;
+  const cy = alto / 2;
+  for (let y = 0; y < alto; y++) {
+    for (let x = 0; x < ancho; x++) {
+      const dx = (x - cx) / 182;
+      const dy = (y - cy) / 147;
+      const bordeOrganico = Math.sin(x * 0.055) * 0.035 + Math.sin((x + y) * 0.031) * 0.025;
+      if (dx * dx + dy * dy < 1 + bordeOrganico) {
+        matriz[y][x] = base;
+      }
     }
   }
   return guardarMatriz(matriz);
@@ -263,23 +326,23 @@ const MATRIZ_HUMO_1 = [
   '....HHH.','......HH','.....HHH','....HH..',
   '...HH...','....HHH.','.....HH.','........'
 ];
-function crearMatrizAgua(variante) {
-  const matriz = matrizVacia(16, 16);
-  for (let y = 0; y < 16; y++) {
-    for (let x = 0; x < 16; x++) {
-      const ondulacion = (x + y * 3 + variante * 5) % 9;
-      matriz[y][x] = (x === 0 || y === 0 || x === 15 || y === 15 || ondulacion < 2) ? 'A' : 'C';
-    }
+function crearMatrizOnda(variante) {
+  const matriz = matrizVacia(32, 6);
+  const inicio = variante === 0 ? 3 : 7;
+  for (let x = inicio; x < 28; x++) {
+    const curva = x < 12 ? 2 : 3;
+    matriz[curva][x] = 'C';
+    if (x > inicio + 2 && x < 25) matriz[curva + 1][x] = 'A';
   }
   return guardarMatriz(matriz);
 }
-const MATRIZ_AGUA_0 = crearMatrizAgua(0);
-const MATRIZ_AGUA_1 = crearMatrizAgua(1);
+const MATRIZ_ONDA_0 = crearMatrizOnda(0);
+const MATRIZ_ONDA_1 = crearMatrizOnda(1);
 
 export function registrarSpritesPersonaje(escena) {
   for (const [direccion, cuadros] of Object.entries(SPRITES_PERSONAJE)) {
     cuadros.forEach((matriz, indice) => {
-      crearTexturaDesdeMatriz(escena, 'persona-' + direccion + '-' + indice, matriz);
+      crearTexturaDesdeMatriz(escena, 'persona-' + direccion + '-' + indice, agregarContorno(matriz));
     });
   }
 }
@@ -309,16 +372,17 @@ export function registrarSpritesPixel(escena) {
     'icono-newen': MATRIZ_NEWEN,
     'icono-equilibrio': MATRIZ_EQUILIBRIO,
     destello: MATRIZ_DESTELLO,
-    'agua-0': MATRIZ_AGUA_0,
-    'agua-1': MATRIZ_AGUA_1,
-    'tile-camino': crearTile('T', 'S', 'B', 3),
-    'tile-ribera': crearTile('B', 'T', 'H', 5),
+    'onda-0': MATRIZ_ONDA_0,
+    'onda-1': MATRIZ_ONDA_1,
+    'tile-camino': crearTile('T'),
+    'tile-ribera': crearTile('T'),
     'tile-cielo': crearMatrizCielo()
   };
   for (const estado of ['sano', 'normal', 'seco']) {
     const tonos = estado === 'sano' ? ['F', 'V', 'M'] : estado === 'normal' ? ['D', 'F', 'V'] : ['D', 'G', 'B'];
-    assets['tile-suelo-bosque-' + estado] = crearTile(tonos[0], tonos[1], tonos[2], estado.length);
-    assets['tile-suelo-claro-' + estado] = crearTile(estado === 'seco' ? 'T' : 'F', estado === 'seco' ? 'B' : 'V', estado === 'seco' ? 'S' : 'M', estado.length + 7);
+    assets['tile-suelo-bosque-' + estado] = crearSuelo(tonos[0], tonos[1], estado.length);
+    const baseClaro = estado === 'seco' ? 'T' : 'F';
+    assets['tile-suelo-claro-' + estado] = crearClaro(baseClaro);
   }
   for (const [clave, matriz] of Object.entries(assets)) {
     crearTexturaDesdeMatriz(escena, clave, matriz);
