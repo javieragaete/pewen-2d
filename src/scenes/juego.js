@@ -133,19 +133,68 @@ export class EscenaJuego extends Phaser.Scene {
     });
 
     const azar = new Phaser.Math.RandomDataGenerator([String(mapa.semilla)]);
-    for (let i = 0; i < mapa.matas; i++) {
-      const x = azar.between(20, mundo.ancho - 20);
-      const y = azar.between(300, mundo.alto - 20);
-      if (x > 990 && x < 1200) continue;
-      const variante = i % 3;
-      this.add.image(x, y, 'pasto-' + variante).setOrigin(0.5, 1).setScale(2).setDepth(y - 1);
+    const decoracion = mapa.decoracion;
+    const distanciaSegmento = (x, y, a, b) => {
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const largo2 = dx * dx + dy * dy || 1;
+      const t = Phaser.Math.Clamp(((x - a[0]) * dx + (y - a[1]) * dy) / largo2, 0, 1);
+      return Phaser.Math.Distance.Between(x, y, a[0] + dx * t, a[1] + dy * t);
+    };
+    const cercaDelCamino = (x, y) => mapa.camino.slice(0, -1)
+      .some((punto, i) => distanciaSegmento(x, y, punto, mapa.camino[i + 1]) < 58);
+    const despejado = (x, y) => {
+      if (x < 24 || x > mundo.ancho - 24 || y < 300 || y > mundo.alto - 24) return false;
+      if (cercaDelCamino(x, y)) return false;
+      if (Phaser.Math.Distance.Between(x, y, mapa.ruka.x, mapa.ruka.y) < decoracion.radioLibreRuka) return false;
+      if (mapa.pewenes.some(([px, py]) => Phaser.Math.Distance.Between(x, y, px, py) < decoracion.radioLibrePewen)) return false;
+      // Conserva libre el cauce y su ribera visual.
+      if (x > 980 && x < 1200) return false;
+      return true;
+    };
+
+    // El pasto aparece en 13 manchones de 7 matas, no repartido por toda la escena.
+    let manchonesPlantados = 0;
+    for (let intento = 0; intento < decoracion.manchonesPasto * 80 && manchonesPlantados < decoracion.manchonesPasto; intento++) {
+      const centroX = azar.between(30, mundo.ancho - 30);
+      const centroY = azar.between(320, mundo.alto - 30);
+      const matas = [];
+      for (let i = 0; i < decoracion.matasPorManchon; i++) {
+        const angulo = azar.frac() * Math.PI * 2;
+        const radio = azar.between(8, 34);
+        const x = Math.round(centroX + Math.cos(angulo) * radio);
+        const y = Math.round(centroY + Math.sin(angulo) * radio);
+        if (!despejado(x, y)) break;
+        matas.push([x, y]);
+      }
+      if (matas.length !== decoracion.matasPorManchon) continue;
+      matas.forEach(([x, y], i) => {
+        this.add.image(x, y, 'pasto-' + (i % 3)).setOrigin(0.5, 1).setScale(2).setDepth(y - 1);
+      });
+      manchonesPlantados++;
     }
-    for (let i = 0; i < mapa.piedras; i++) {
+
+    // Doce rocas en pequeños grupos o aisladas; algunos arbustos acompañan una roca.
+    const rocasPuestas = [];
+    for (let intento = 0; intento < decoracion.piedras * 40 && rocasPuestas.length < decoracion.piedras; intento++) {
       const x = azar.between(35, mundo.ancho - 35);
-      const y = azar.between(300, mundo.alto - 20);
-      if (x > 990 && x < 1200) continue;
-      this.add.image(x, y, 'roca-' + (i % 2)).setOrigin(0.5, 1).setScale(2).setDepth(y);
-      if (i % 3 === 0) this.add.image(x + 16, y, 'arbusto').setOrigin(0.5, 1).setScale(2).setDepth(y + 1);
+      const y = azar.between(320, mundo.alto - 25);
+      if (!despejado(x, y) || rocasPuestas.some(([rx, ry]) => Phaser.Math.Distance.Between(x, y, rx, ry) < 48)) continue;
+      rocasPuestas.push([x, y]);
+      const indice = rocasPuestas.length - 1;
+      this.add.image(x, y, 'roca-' + (indice % 2)).setOrigin(0.5, 1).setScale(2).setDepth(y);
+      if (indice % 3 === 0) {
+        this.add.image(x + 14, y + 3, 'arbusto').setOrigin(0.5, 1).setScale(2).setDepth(y + 1);
+      }
+      // Cuatro pares visuales; los otros cuatro elementos quedan aislados.
+      if (indice < 8 && indice % 2 === 0 && rocasPuestas.length < decoracion.piedras) {
+        const parX = x + 28;
+        const parY = y + 5;
+        if (despejado(parX, parY)) {
+          rocasPuestas.push([parX, parY]);
+          this.add.image(parX, parY, 'roca-1').setOrigin(0.5, 1).setScale(2).setDepth(parY);
+        }
+      }
     }
     mapa.arboles.forEach(([x, y], indice) => {
       this.add.image(x, y, 'arbol-nativo-' + (indice % 2))
