@@ -26,3 +26,9 @@
 - La sintaxis de `juego.js` y `sprites.js` pasó `node --check`.
 - Una comprobación aislada confirmó ocho texturas de 16x16, sus filas y sus colores de paleta.
 - No se pudo abrir la versión actual en navegador porque GitHub Pages todavía responde 404; falta revisar la consola y nitidez visual en una ejecución real.
+
+## Menú principal · etapa 1
+
+- La escena de inicio abre antes de Juego. El nombre y el subtítulo se cambian en `src/config.js` y el fondo usa formas de Phaser y la paleta existente.
+- El foco se mueve con flechas o W/S y se activa con Enter, espacio o clic. La carga deshabilitada se salta al navegar. Las pantallas en preparación permiten volver con Esc o clic.
+- En Edge comprobamos la navegación, el estado deshabilitado, la recarga de la página y el paso a Juego. También verificamos la recolección, el HUD, el reloj y el descanso con la consola sin errores. Las pruebas de persistencia quedan para las etapas 2 y 3.

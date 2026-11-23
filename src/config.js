@@ -1,4 +1,8 @@
 export const CONFIG = {
+  menu: {
+    titulo: 'Pewén',
+    subtitulo: 'Una jornada en el lof'
+  },
   pantalla: { ancho: 1280, alto: 720 },
   mundo: { ancho: 1600, alto: 1200 },
   jugador: { inicioX: 275, inicioY: 660, velocidad: 245, radio: 14 },
