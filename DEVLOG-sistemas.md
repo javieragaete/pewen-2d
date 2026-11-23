@@ -32,3 +32,16 @@
 - Al avanzar 120 segundos se perdió la carga pendiente y apareció el resumen. La jornada 2 mostró recuperado el pewén tomado con permiso y seco el tomado directamente.
 - La consola del navegador no mostró errores ni advertencias. `node --check` pasó en los módulos propios.
 
+## Etapa 3 — HUD
+
+- Añadido `HudSistemas`: panel compacto con marco simple, barras de newen y equilibrio, conteo de piñones y reloj. El indicador `T` aparece al agotar los pewenes de la jornada y entregar la carga.
+- El reloj escucha la tecla `T` y cierra antes la jornada solo cuando todos los pewenes fueron usados y no quedan piñones cargados; esto evita perder carga por error.
+- Al terminar la tercera jornada, el flujo pasa a la escena `Final` (se implementa en la etapa 4).
+- Ordenada la página aislada para que sus botones de prueba no cubran el HUD.
+
+### Verificación
+
+- `node --check` pasó en `hud.js`, `jornadas.js` y `estado.js`.
+- Prueba aislada abrió con Phaser y dos pewenes de reemplazo; la consola del navegador quedó sin errores ni advertencias.
+- Se verificó el HUD en el canvas. La superposición inicial de botones de prueba ocultaba la esquina superior; se corrigió el layout del arnés para dejar el panel visible.
+

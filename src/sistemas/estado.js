@@ -2,6 +2,7 @@ import { AJUSTES_SISTEMAS as A } from '../ajustes/sistemas.js';
 import { GestorJornadas } from './jornadas.js';
 import { Pewenes } from './pewenes.js';
 import { Recoleccion } from './recoleccion.js';
+import { HudSistemas } from './hud.js';
 
 const CLAVE_ESTADO = 'estado';
 
@@ -37,7 +38,8 @@ export function iniciarSistemas(escena) {
     const pewenes = new Pewenes(destino, estado);
     const recoleccion = new Recoleccion(destino, estado, pewenes);
     const jornadas = new GestorJornadas(destino);
-    destino.sistemas = { estado, pewenes, recoleccion, jornadas };
+    const hud = new HudSistemas(destino, estado);
+    destino.sistemas = { estado, pewenes, recoleccion, jornadas, hud };
   };
 
   if (escena.anclas) conectar(escena);
