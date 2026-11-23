@@ -84,7 +84,7 @@ export class Configuracion extends Phaser.Scene {
       perilla.x = x + relleno.width;
       valor.setText(`${Math.round(this.preferencias.audio[id] * 100)}%`);
       guardarPreferencias(this.preferencias);
-      actualizarVolumen(this);
+      actualizarVolumen(this, this.preferencias);
     };
     actualizar(x + ancho * this.preferencias.audio[id]);
     barra.on('pointerdown', (puntero) => actualizar(puntero.x));

@@ -7,6 +7,8 @@ const { Input, Math: Matematica } = globalThis.Phaser;
 const mono = 'Consolas, "Courier New", monospace';
 const color = clave => globalThis.Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
 
+import { volumenCanal } from '../settings.js';
+
 export class Recoleccion {
   constructor(escena, alRecolectar, controles) {
     this.escena = escena;
@@ -146,7 +148,9 @@ export class Recoleccion {
   }
 
   recolectar(pewen, efecto) {
-    const sonido = () => this.escena.sound.play('sfx-pinon-recoger', { volume: 0.9 });
+    const sonido = () => this.escena.sound.play('sfx-pinon-recoger', {
+      volume: 0.9 * volumenCanal('effects')
+    });
     if (this.escena.sound.locked) {
       this.escena.sound.once(globalThis.Phaser.Sound.Events.UNLOCKED, sonido);
       this.escena.sound.unlock();

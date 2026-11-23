@@ -1,5 +1,5 @@
 import { CONFIG } from '../config.js';
-import { aplicarIluminacion, actualizarVolumen } from '../settings.js';
+import { aplicarIluminacion, actualizarVolumen, volumenCanal } from '../settings.js';
 import { textoPixel } from '../tipografia.js';
 import { registrarSpritesPixel } from '../sprites.js';
 import { dibujarFondoMenu } from '../paisaje-menu.js';
@@ -191,7 +191,9 @@ export class EscenaMenu extends Phaser.Scene {
     }[tipo];
     if (!opciones || !this.cache.audio.exists(opciones.clave)) return;
 
-    const sonar = () => this.sound.play(opciones.clave, { volume: opciones.volumen });
+    const sonar = () => this.sound.play(opciones.clave, {
+      volume: opciones.volumen * volumenCanal('effects')
+    });
     if (this.sound.locked) {
       if (gestoUsuario) {
         this.sound.once(Phaser.Sound.Events.UNLOCKED, sonar);

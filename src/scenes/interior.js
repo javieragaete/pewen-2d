@@ -1,5 +1,6 @@
 import { registrarArteRuka } from '../ruka/index.js';
 import { AJUSTES_INTERIOR as AJ } from '../ajustes/interior.js';
+import { volumenCanal } from '../settings.js';
 
 const Phaser = globalThis.Phaser;
 const W = 1280, H = 720, S = AJ.escalaPixel;
@@ -18,7 +19,10 @@ export class Interior extends Phaser.Scene {
   init(data = {}) { this.pinonesLlevados = Number(data.pinonesLlevados ?? 0); }
 
   create() {
-    this.musica = this.sound.add('tema-mapuche-tribal', { loop: true, volume: 0.24 });
+    this.musica = this.sound.add('tema-mapuche-tribal', {
+      loop: true,
+      volume: 0.24 * volumenCanal('music')
+    });
     this.iniciarMusica = () => {
       if (this.sound.locked || !this.musica || this.musica.isPlaying) return;
       this.sound.off(Phaser.Sound.Events.UNLOCKED, this.iniciarMusica);

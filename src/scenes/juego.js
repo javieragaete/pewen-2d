@@ -1,5 +1,5 @@
 import { CONFIG } from '../config.js';
-import { cargarPreferencias, mostrarAsignacion } from '../settings.js';
+import { cargarPreferencias, mostrarAsignacion, volumenCanal } from '../settings.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
 import { ESCALA_PIXEL, dibujarMarcoPixel, registrarSpritesPixel } from '../sprites.js';
@@ -157,7 +157,10 @@ export class EscenaJuego extends Phaser.Scene {
   }
 
   iniciarMusicaDeFondo() {
-    this.musica = this.sound.add('tema-mapuche-tribal', { loop: true, volume: 0.24 });
+    this.musica = this.sound.add('tema-mapuche-tribal', {
+      loop: true,
+      volume: 0.24 * volumenCanal('music')
+    });
     this._iniciarMusica = () => {
       if (this.sound.locked || !this.musica || this.musica.isPlaying) return;
       this.sound.off(Phaser.Sound.Events.UNLOCKED, this._iniciarMusica);
