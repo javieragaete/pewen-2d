@@ -20,7 +20,115 @@ const COLOR_POR_CARACTER = {
   P: 'piel'
 };
 
-export const ESCALA_PIXEL = 4;
+export const ESCALA_PIXEL = 2;
+
+const PERSONAJE_ABAJO = [
+  '......KKKK......',
+  '.....KKKKKK.....',
+  '.....PPPPPP.....',
+  '.....PKKPPK.....',
+  '......PPPP......',
+  '......RRRR......',
+  '....RRRRRRRR....',
+  '...RRRRRRRRRR...',
+  '...RRRKKRRRRR...',
+  '...RRRKKRRRRR...',
+  '....RRRKKRR.....',
+  '....RRRKKRR.....',
+  '....KK...KK.....',
+  '....KK...KK.....',
+  '...KK.....KK....',
+  '................'
+];
+
+const PERSONAJE_ABAJO_PASO = [
+  ...PERSONAJE_ABAJO.slice(0, 12),
+  '...KK.....KK....',
+  '.....KK.KK......',
+  '.....KK.KK......',
+  '................'
+];
+
+const PERSONAJE_ARRIBA = [
+  '......KKKK......',
+  '.....KKKKKK.....',
+  '.....KKKKKK.....',
+  '.....KKKKKK.....',
+  '......KKKK......',
+  '......RRRR......',
+  '....RRRRRRRR....',
+  '...RRRRRRRRRR...',
+  '...RRRKKRRRRR...',
+  '...RRRKKRRRRR...',
+  '....RRRKKRR.....',
+  '....RRRKKRR.....',
+  '....KK...KK.....',
+  '....KK...KK.....',
+  '...KK.....KK....',
+  '................'
+];
+
+const PERSONAJE_ARRIBA_PASO = [
+  ...PERSONAJE_ARRIBA.slice(0, 12),
+  '...KK.....KK....',
+  '.....KK.KK......',
+  '.....KK.KK......',
+  '................'
+];
+
+const PERSONAJE_IZQUIERDA = [
+  [
+    '.......KKK......',
+    '......KKKK......',
+    '......KKKPP.....',
+    '......KPKPP......',
+    '.......PPPP.....',
+    '......RRRR......',
+    '.....RRRRRR.....',
+    '....RRRRRRRR....',
+    '....RRRKKRRR....',
+    '....RRRKKRRR....',
+    '.....RRKKRR.....',
+    '.....RRKKRR.....',
+    '......KK..KK....',
+    '......KK..KK....',
+    '.....KK...KK....',
+    '................'
+  ],
+  [
+    '.......KKK......',
+    '......KKKK......',
+    '......KKKPP.....',
+    '......KPKPP......',
+    '.......PPPP.....',
+    '......RRRR......',
+    '.....RRRRRR.....',
+    '....RRRRRRRR....',
+    '....RRRKKRRR....',
+    '....RRRKKRRR....',
+    '.....RRKKRR.....',
+    '.....RRKKRR.....',
+    '......KK...KK...',
+    '......KK...KK...',
+    '.....KK..KK.....',
+    '................'
+  ]
+];
+
+export const SPRITES_PERSONAJE = {
+  abajo: [PERSONAJE_ABAJO, PERSONAJE_ABAJO_PASO],
+  arriba: [PERSONAJE_ARRIBA, PERSONAJE_ARRIBA_PASO],
+  izquierda: PERSONAJE_IZQUIERDA,
+  derecha: PERSONAJE_IZQUIERDA.map(matriz => matriz.map(fila => [...fila].reverse().join('')))
+};
+
+export function registrarSpritesPersonaje(escena) {
+  for (const [direccion, cuadros] of Object.entries(SPRITES_PERSONAJE)) {
+    cuadros.forEach((matriz, indice) => {
+      crearTexturaDesdeMatriz(escena, `persona-${direccion}-${indice}`, matriz);
+    });
+  }
+}
 
 /**
  * Convierte una matriz de caracteres en una textura de Phaser.
