@@ -58,6 +58,7 @@ export class Recoleccion {
   crearPewen(x, y, tipo) {
     const arbol = this.escena.add.image(x, y, tipo + '-normal')
       .setOrigin(0.5, 1).setScale(escalaPewen(tipo)).setDepth(y);
+    this.escena.ambientarArbol(arbol);
     const pinones = this.escena.add.container(x, y - 7, [
       this.escena.add.image(-16, 0, 'pinon').setScale(2),
       this.escena.add.image(0, -5, 'pinon').setScale(2),

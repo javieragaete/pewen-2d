@@ -61,7 +61,7 @@ function nube(escena, x, y, escala, duracion, conLogo = false) {
   }
 }
 
-function banderaRuka(escena, x, y, animar) {
+export function banderaRuka(escena, x, y, animar) {
   const dibujo = escena.add.graphics({ x, y }).setDepth(-21);
   const franjas = [0x171e1d, 0x6baed3, 0x29833e, 0xb7282e, 0x171e1d];
   const dibujar = fase => {
@@ -87,6 +87,7 @@ function banderaRuka(escena, x, y, animar) {
       onUpdate: tween => dibujar(tween.getValue())
     });
   }
+  return dibujo;
 }
 
 export function dibujarFondoMenu(escena, anchoPantalla, alto) {

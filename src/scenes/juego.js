@@ -1,3 +1,4 @@
+import { banderaRuka } from '../paisaje-menu.js';
 import { CONFIG } from '../config.js';
 import { cargarPreferencias, mostrarAsignacion, volumenCanal } from '../settings.js';
 import { Recoleccion } from './recoleccion.js';
@@ -186,6 +187,9 @@ export class EscenaJuego extends Phaser.Scene {
   }
 
   dibujarMapa() {
+    this.obstaculosNaturales = [];
+    this.arbolesAlViento = [];
+    this.segundosViento = 0;
     const anchoTile = 32;
     this.fondoSuelo = this.add.tileSprite(0, 0, mundo.ancho, mundo.alto, 'tile-suelo-bosque-normal')
       .setOrigin(0).setDepth(-20);
@@ -195,11 +199,24 @@ export class EscenaJuego extends Phaser.Scene {
     this.terrenoClaro = this.add.image(80, 320, 'tile-suelo-claro-normal')
       .setOrigin(0).setScale(ESCALA_PIXEL).setDepth(-19);
 
+    // Franja del cielo detrás de la cordillera. Cada nube vuelve por el borde opuesto.
+    this.add.rectangle(0, 0, mundo.ancho, 200, 0x779da1).setOrigin(0).setDepth(-18);
+    this.nubes = [[60, 55, 2, 8], [470, 22, 3, 11], [920, 74, 2, 7], [1310, 38, 3, 9]]
+      .map(([x, y, escala, velocidad], i) => {
+        const dibujo = this.add.graphics().setPosition(x, y).setScale(escala).setDepth(-17);
+        dibujo.fillStyle(0xb8d0cf).fillRect(1, 8, 42, 4).fillRect(6, 12, 33, 2);
+        dibujo.fillStyle(0xebeadd).fillRect(0, 7, 41, 3).fillRect(5, 4, 30, 4)
+          .fillRect(10 + i * 2, 0, 9, 6).fillRect(20, 3, 9, 5);
+        return { dibujo, x, velocidad };
+      });
+
     // Siluetas de montaña hechas con píxeles de la paleta.
     [[-20, 260, 0], [580, 260, 1], [1180, 260, 0]]
       .forEach(([x, y, variante]) => {
         this.add.image(x, y, 'montana-' + variante).setOrigin(0, 1).setScale(ESCALA_PIXEL).setDepth(-15);
       });
+
+    this.nevada = this.add.graphics().setDepth(-14);
 
     // Camino discreto en una cuadrícula pixelada de 32 unidades.
     const caminoTiles = new Set();
@@ -333,7 +350,7 @@ export class EscenaJuego extends Phaser.Scene {
       if (!despejado(x, y) || rocasPuestas.some(([rx, ry]) => Phaser.Math.Distance.Between(x, y, rx, ry) < 48)) continue;
       rocasPuestas.push([x, y]);
       const indice = rocasPuestas.length - 1;
-      this.add.image(x, y, 'roca-' + (indice % 2)).setOrigin(0.5, 1).setScale(2).setDepth(y);
+      this.crearObstaculoDecorativo(this.add.image(x, y, 'roca-' + (indice % 2)).setOrigin(0.5, 1).setScale(2).setDepth(y));
       this.decoracionesMapa.push({ x, y, radio: 15 });
       if (indice % 3 === 0) {
         this.add.image(x + 14, y + 3, 'arbusto').setOrigin(0.5, 1).setScale(2).setDepth(y + 1);
@@ -345,16 +362,70 @@ export class EscenaJuego extends Phaser.Scene {
         const parY = y + 5;
         if (despejado(parX, parY)) {
           rocasPuestas.push([parX, parY]);
-          this.add.image(parX, parY, 'roca-1').setOrigin(0.5, 1).setScale(2).setDepth(parY);
+          this.crearObstaculoDecorativo(this.add.image(parX, parY, 'roca-1').setOrigin(0.5, 1).setScale(2).setDepth(parY));
           this.decoracionesMapa.push({ x: parX, y: parY, radio: 15 });
         }
       }
     }
+    let troncos = 0;
+    for (let intento = 0; intento < 240 && troncos < 7; intento++) {
+      const x = azar.between(45, mundo.ancho - 45);
+      const y = azar.between(330, mundo.alto - 35);
+      if (!despejado(x, y) || rocasPuestas.some(([rx, ry]) => Math.hypot(x - rx, y - ry) < 68)) continue;
+      this.crearObstaculoDecorativo(this.add.image(x, y, 'tronco-musgo').setOrigin(0.5, 1).setScale(2).setFlipX(troncos % 2 === 1).setDepth(y));
+      rocasPuestas.push([x, y]);
+      this.decoracionesMapa.push({ x, y, radio: 28 });
+      troncos++;
+    }
     mapa.arboles.forEach(([x, y], indice) => {
-      this.add.image(x, y, 'arbol-nativo-' + (indice % 2))
+      const arbol = this.add.image(x, y, 'arbol-nativo-' + (indice % 2))
         .setOrigin(0.5, 1).setScale(ESCALA_ARBOL_NATIVO).setDepth(y);
       this.decoracionesMapa.push({ x, y, radio: 50 });
+      this.ambientarArbol(arbol);
     });
+  }
+
+  crearObstaculoDecorativo(imagen) {
+    // La huella sólida sigue la base, dejando libres las puntas de los helechos.
+    const ancho = imagen.displayWidth * 0.83;
+    const alto = imagen.displayHeight * 0.55;
+    const base = this.add.zone(imagen.x, imagen.y - alto / 2 - 2, ancho, alto);
+    this.physics.add.existing(base, true);
+    this.obstaculosNaturales.push(base);
+  }
+
+  ambientarArbol(arbol) {
+    const { x, y, displayWidth: ancho } = arbol;
+    const sombra = this.add.graphics().setPosition(x, y).setDepth(-2);
+    // Franjas escalonadas proyectadas hacia la derecha, por debajo de los personajes.
+    sombra.fillStyle(0x182c25, 0.35);
+    sombra.fillRect(-4, -2, ancho * 0.45, 4);
+    sombra.fillRect(3, 2, ancho * 0.58, 4);
+    sombra.fillRect(10, 6, ancho * 0.44, 3);
+    this.arbolesAlViento.push(arbol);
+  }
+
+  actualizarAmbiente(delta) {
+    this.segundosViento += delta / 1000;
+    // Chubasco breve sobre la cordillera, con entrada y salida graduales.
+    const fase = this.segundosViento % 45 - 6;
+    this.nevada.clear();
+    if (fase > 0 && fase < 14) {
+      this.nevada.fillStyle(0xf4f4df, Math.min(1, fase / 2, (14 - fase) / 2) * 0.85);
+      for (let i = 0; i < 150; i++) {
+        const x = (i * 297 + fase * 12 + 4 * Math.sin(fase + i)) % mundo.ancho;
+        const y = 48 + (i * 73 + fase * (17 + i % 7)) % 206;
+        this.nevada.fillRect(Math.round(x), Math.round(y), i % 4 ? 2 : 3, 2);
+      }
+    }
+    for (const arbol of this.arbolesAlViento) {
+      arbol.angle = 1.3 * Math.sin(this.segundosViento * 1.6 + arbol.x / 140 + arbol.y / 240);
+    }
+    for (const nube of this.nubes) {
+      nube.x += nube.velocidad * delta / 1000;
+      if (nube.x > mundo.ancho) nube.x = -140;
+      nube.dibujo.x = Math.round(nube.x);
+    }
   }
 
   actualizarEstadoPaisaje(equilibrio) {
@@ -371,6 +442,7 @@ export class EscenaJuego extends Phaser.Scene {
     const base = y + alto / 2;
     this.rukaVisual = this.add.image(x, base, 'ruka')
       .setOrigin(0.5, 1).setScale(ESCALA_PIXEL).setDepth(base);
+    banderaRuka(this, x + 43, base - 90, true).setDepth(base - 1);
     this.humoRuka = this.add.image(x + 8, base - 88, 'humo-0')
       .setOrigin(0.5, 1).setScale(2).setDepth(base - 1);
     this.time.addEvent({
@@ -389,7 +461,7 @@ export class EscenaJuego extends Phaser.Scene {
     // por la ladera sin cerrar el paso por el resto del claro.
     const barreraMontana = this.add.zone(mundo.ancho / 2, 246, mundo.ancho, 28);
     this.physics.add.existing(barreraMontana, true);
-    this.obstaculosNaturales = [barreraMontana];
+    this.obstaculosNaturales.push(barreraMontana);
 
     // Encadenar hitboxes circulares sobre la misma spline que dibuja el río
     // evita que queden huecos en las curvas y bloquea el cruce de ribera a ribera.
@@ -459,6 +531,7 @@ export class EscenaJuego extends Phaser.Scene {
       this.personaje.body.setVelocity(0, 0);
       return;
     }
+    this.actualizarAmbiente(delta);
     const reloj = this.jornadas.actualizar(tiempo);
     if (!reloj.libre) {
       this.extraHackathon.actualizar(false);
