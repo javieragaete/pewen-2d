@@ -74,3 +74,32 @@
 - Añadí constantes visuales ajustables en `CONFIG.mapa.decoracion` para número de manchones, matas por manchón, piedras y radios despejados.
 - Verificación local: partida abierta en navegador, decoración agrupada visible y consola sin errores. No se tocaron mecánicas ni valores jugables.
 
+## Reducción de ruido visual · Etapas 2 a 5
+
+### Etapa 2 — Suelo y río
+
+- Reemplacé los puntos repetidos del suelo por manchas grandes y sutiles de paleta; el claro central ahora es una sola forma de borde orgánico, sin mosaico visible.
+- Reconstruí el río como bandas continuas de ribera y agua en dos tonos. Añadí ondas largas y escasas en dos grupos alternados cada 1,4 segundos; ya no hay cuadrícula de tiles ni parpadeo sincronizado.
+
+### Etapa 3 — Contraste de objetos
+
+- Añadí contorno de tinta de un píxel al pewén, la ruka y el personaje. Los tres estados del pewén conservan la misma escala y ahora separan mejor su luminosidad del suelo.
+- Apagué los árboles nativos y reemplacé los puntos de brillo por sombreado agrupado.
+
+### Etapa 4 — Cerros y escala
+
+- Reduje los cerros de juego y menú a tres, con dos tonos de roca y nieve sin moteado.
+- Unifiqué la escala de sprites del mundo a x2; redibujé los cerros a mayor resolución para conservar sus dimensiones.
+
+### Etapa 5 — Interfaz y menú
+
+- Unifiqué los marcos de HUD, ayuda, interacción y avisos: relleno plano y un borde de 2 px.
+- Compacté el HUD a iconos, barras, conteo y tiempo; el indicador de descanso ahora aparece junto al personaje.
+- La ayuda se desvanece después de 8 segundos. Simplifiqué el menú a tres cerros, cuatro árboles, panel lateral liso y selección por relleno y marcador.
+
+### Verificación
+
+- Sintaxis de módulos validada con `node --check`.
+- Menú y partida ejecutados en servidor local; se revisó visualmente el cauce continuo, la escala y el HUD. Consola sin errores.
+- Las mecánicas, controles, tiempos y valores jugables permanecen iguales; solo se modificaron colores y constantes de presentación.
+
