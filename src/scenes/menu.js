@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { textoPixel } from '../tipografia.js';
 import { registrarSpritesPixel } from '../sprites.js';
 import { cargarPreferencias, mostrarAsignacion } from '../settings.js';
 
@@ -6,6 +7,8 @@ const Phaser = globalThis.Phaser;
 const { pantalla, menu, paletaPixel } = CONFIG;
 const color = clave => Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
 const mono = 'Consolas, "Courier New", monospace';
+
+const paletaMenu = menu.paleta;
 
 export class EscenaMenu extends Phaser.Scene {
   constructor() {
@@ -46,11 +49,7 @@ export class EscenaMenu extends Phaser.Scene {
   }
 
   texto(x, y, contenido, size, tint = paletaPixel.nieve) {
-    return this.add.text(x, y, contenido, {
-      fontFamily: mono,
-      fontSize: size,
-      color: tint
-    });
+    return textoPixel(this, x, y, contenido, size, tint);
   }
 
   mostrarPrincipal() {
@@ -59,9 +58,9 @@ export class EscenaMenu extends Phaser.Scene {
     this.agregarOpcion('Jugar', () => this.scene.start('Juego'));
     this.agregarOpcion('Configuración', () => this.scene.start('Configuracion', { origen: 'Menu' }));
     const { controles } = cargarPreferencias();
-    this.contenido.add(this.texto(64, 420,
+    this.contenido.add(this.add.text(64, 420,
       `Mover: ${mostrarAsignacion(controles.up)} ${mostrarAsignacion(controles.left)} ${mostrarAsignacion(controles.down)} ${mostrarAsignacion(controles.right)}`,
-      17, paletaPixel.nieve));
+      { fontFamily: mono, fontSize: '17px', color: paletaPixel.nieve }));
     this.seleccionar(0);
   }
 
@@ -76,31 +75,39 @@ export class EscenaMenu extends Phaser.Scene {
     this.contenido.removeAll(true);
     this.opciones = [];
     this.contenido.add([
-      this.texto(64, 68, titulo, 72).setFontStyle('bold'),
-      this.texto(69, 164, subtitulo, 23, paletaPixel.musgo)
+      this.texto(64, 48, titulo, this.pantallaSecundaria ? 25 : 72),
+      this.texto(69, 170, subtitulo, 19, paletaPixel.musgo)
     ]);
   }
 
-  dibujarOpcion(fondo, tono) {
+  dibujarBoton(fondo, { centro, luz, sombra }) {
     fondo.clear();
-    fondo.fillStyle(color('tinta')).fillRect(0, 0, 432, 60);
-    fondo.fillStyle(color(tono)).fillRect(0, 0, 432, 4);
-    fondo.fillRect(0, 56, 432, 4).fillRect(0, 0, 4, 60).fillRect(428, 0, 4, 60);
-    fondo.fillStyle(color('madera')).fillRect(8, 8, 416, 2);
-    fondo.fillRect(8, 50, 416, 2);
+    // Las franjas rectas forman esquinas escalonadas sin suavizar el borde.
+    fondo.fillStyle(paletaMenu.tinta)
+      .fillRect(12, 0, 408, 60)
+      .fillRect(6, 6, 420, 48)
+      .fillRect(0, 12, 432, 36);
+    fondo.fillStyle(luz)
+      .fillRect(12, 5, 408, 50)
+      .fillRect(6, 12, 420, 36);
+    fondo.fillStyle(sombra)
+      .fillRect(12, 46, 408, 9)
+      .fillRect(414, 13, 12, 35);
+    fondo.fillStyle(centro)
+      .fillRect(16, 12, 398, 37)
+      .fillRect(11, 17, 408, 26);
   }
 
   agregarOpcion(etiqueta, accion, detalle) {
     const indice = this.opciones.length;
     const y = 235 + indice * 74;
     const fondo = this.add.graphics({ x: 64, y });
-    this.dibujarOpcion(fondo, accion ? 'bosqueOscuro' : 'rocaOscura');
-    const indicador = this.texto(80, y + 12, '>', 25, paletaPixel.musgo).setVisible(false);
-    const rotulo = this.texto(112, y + (detalle ? 4 : 12), etiqueta, 25,
+    const indicador = this.texto(80, y + 15, '>', 25, paletaPixel.musgo).setVisible(false);
+    const rotulo = this.texto(112, y + (detalle ? 2 : 14), etiqueta, 25,
       accion ? paletaPixel.nieve : paletaPixel.roca);
     this.contenido.add([fondo, indicador, rotulo]);
     if (detalle) this.contenido.add(this.texto(112, y + 34, detalle, 15, paletaPixel.roca));
-    this.opciones.push({ fondo, indicador, accion });
+    this.opciones.push({ fondo, indicador, accion, rotulo });
     if (accion) {
       fondo.setInteractive(new Phaser.Geom.Rectangle(0, 0, 432, 60), Phaser.Geom.Rectangle.Contains)
         .on('pointerover', () => this.seleccionar(indice))
@@ -113,9 +120,13 @@ export class EscenaMenu extends Phaser.Scene {
 
   seleccionar(indice) {
     this.seleccion = indice;
-    this.opciones.forEach(({ fondo, indicador, accion }, i) => {
+    this.opciones.forEach(({ fondo, indicador, accion, rotulo }, i) => {
       const activa = i === indice;
-      this.dibujarOpcion(fondo, activa ? 'bosque' : accion ? 'bosqueOscuro' : 'rocaOscura');
+      const normal = this.pantallaSecundaria ? 'azul' : paletaMenu.opciones[i];
+      const estilo = activa ? paletaMenu.amarillo : accion ? paletaMenu[normal] : paletaMenu.gris;
+      this.dibujarBoton(fondo, estilo);
+      rotulo.setColor(activa ? paletaPixel.tinta : accion ? paletaPixel.nieve : '#c4c8c3');
+      indicador.setColor(paletaPixel.tinta);
       indicador.setVisible(activa);
     });
   }
