@@ -5,6 +5,8 @@ if (Phaser) {
   const { EscenaJuego } = await import('./scenes/juego.js');
   new Phaser.Game({
     type: Phaser.AUTO,
+    pixelArt: true,
+    roundPixels: true,
     parent: 'juego',
     width: CONFIG.pantalla.ancho,
     height: CONFIG.pantalla.alto,
