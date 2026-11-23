@@ -1,7 +1,17 @@
 export const CONFIG = {
   menu: {
     titulo: 'Pewén',
-    subtitulo: 'Una jornada en el lof'
+    subtitulo: 'Una jornada en el lof',
+    paleta: {
+      tinta: 0x101412,
+      claro: 0xf5eedb,
+      amarillo: { centro: 0xf6cf43, luz: 0xffe87b, sombra: 0xbe891f },
+      rojo: { centro: 0xa8242b, luz: 0xed5550, sombra: 0x651c24 },
+      verde: { centro: 0x246537, luz: 0x70b657, sombra: 0x153f2a },
+      azul: { centro: 0x234b83, luz: 0x75bce4, sombra: 0x172d57 },
+      gris: { centro: 0x343936, luz: 0x737973, sombra: 0x242924 },
+      opciones: ['rojo', 'azul', 'verde', 'azul', 'verde']
+    }
   },
   pantalla: { ancho: 1280, alto: 720 },
   mundo: { ancho: 1600, alto: 1200 },

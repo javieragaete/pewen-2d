@@ -1,10 +1,11 @@
 import { CONFIG } from '../config.js';
-import { ESCALA_PIXEL, dibujarMarcoPixel, registrarSpritesPixel } from '../sprites.js';
+import { textoPixel } from '../tipografia.js';
+import { ESCALA_PIXEL, registrarSpritesPixel } from '../sprites.js';
 
 const Phaser = globalThis.Phaser;
 const { pantalla, menu, paletaPixel } = CONFIG;
 const color = clave => Phaser.Display.Color.HexStringToColor(paletaPixel[clave]).color;
-const mono = 'Consolas, "Courier New", monospace';
+const paletaMenu = menu.paleta;
 
 export class EscenaMenu extends Phaser.Scene {
   constructor() {
@@ -43,11 +44,7 @@ export class EscenaMenu extends Phaser.Scene {
   }
 
   texto(x, y, contenido, size, tint = paletaPixel.nieve) {
-    return this.add.text(x, y, contenido, {
-      fontFamily: mono,
-      fontSize: size,
-      color: tint
-    });
+    return textoPixel(this, x, y, contenido, size, tint);
   }
 
   mostrarPrincipal() {
@@ -72,26 +69,39 @@ export class EscenaMenu extends Phaser.Scene {
     this.contenido.removeAll(true);
     this.opciones = [];
     this.contenido.add([
-      this.texto(64, 68, titulo, 48).setFontStyle('bold'),
+      this.texto(64, 55, titulo, this.pantallaSecundaria ? 25 : 48),
       this.texto(69, 132, subtitulo, 20, paletaPixel.musgo)
     ]);
   }
 
-  dibujarOpcion(fondo, tono) {
-    dibujarMarcoPixel(fondo, 0, 0, 432, 60, color(tono), color('bosque'));
+  dibujarBoton(fondo, { centro, luz, sombra }) {
+    fondo.clear();
+    // Las franjas rectas forman esquinas escalonadas sin suavizar el borde.
+    fondo.fillStyle(paletaMenu.tinta)
+      .fillRect(12, 0, 408, 60)
+      .fillRect(6, 6, 420, 48)
+      .fillRect(0, 12, 432, 36);
+    fondo.fillStyle(luz)
+      .fillRect(12, 5, 408, 50)
+      .fillRect(6, 12, 420, 36);
+    fondo.fillStyle(sombra)
+      .fillRect(12, 46, 408, 9)
+      .fillRect(414, 13, 12, 35);
+    fondo.fillStyle(centro)
+      .fillRect(16, 12, 398, 37)
+      .fillRect(11, 17, 408, 26);
   }
 
   agregarOpcion(etiqueta, accion, detalle) {
     const indice = this.opciones.length;
     const y = 205 + indice * 72;
     const fondo = this.add.graphics({ x: 64, y });
-    this.dibujarOpcion(fondo, accion ? 'tinta' : 'rocaOscura');
-    const indicador = this.texto(80, y + 12, '>', 25, paletaPixel.musgo).setVisible(false);
-    const rotulo = this.texto(112, y + (detalle ? 4 : 12), etiqueta, 25,
+    const indicador = this.texto(80, y + 15, '>', 25, paletaPixel.musgo).setVisible(false);
+    const rotulo = this.texto(112, y + (detalle ? 2 : 14), etiqueta, 25,
       accion ? paletaPixel.nieve : paletaPixel.roca);
     this.contenido.add([fondo, indicador, rotulo]);
-    if (detalle) this.contenido.add(this.texto(112, y + 34, detalle, 15, paletaPixel.roca));
-    this.opciones.push({ fondo, indicador, accion });
+    if (detalle) this.contenido.add(this.texto(112, y + 34, detalle, 15, paletaPixel.nieve));
+    this.opciones.push({ fondo, indicador, accion, rotulo });
     if (accion) {
       fondo.setInteractive(new Phaser.Geom.Rectangle(0, 0, 432, 60), Phaser.Geom.Rectangle.Contains)
         .on('pointerover', () => this.seleccionar(indice))
@@ -104,9 +114,13 @@ export class EscenaMenu extends Phaser.Scene {
 
   seleccionar(indice) {
     this.seleccion = indice;
-    this.opciones.forEach(({ fondo, indicador, accion }, i) => {
+    this.opciones.forEach(({ fondo, indicador, accion, rotulo }, i) => {
       const activa = i === indice;
-      this.dibujarOpcion(fondo, activa ? 'bosqueOscuro' : accion ? 'tinta' : 'rocaOscura');
+      const normal = this.pantallaSecundaria ? 'azul' : paletaMenu.opciones[i];
+      const estilo = activa ? paletaMenu.amarillo : accion ? paletaMenu[normal] : paletaMenu.gris;
+      this.dibujarBoton(fondo, estilo);
+      rotulo.setColor(activa ? paletaPixel.tinta : accion ? paletaPixel.nieve : '#c4c8c3');
+      indicador.setColor(paletaPixel.tinta);
       indicador.setVisible(activa);
     });
   }
