@@ -16,8 +16,11 @@ export class EscenaJuego extends Phaser.Scene {
 
   preload() {
     if (!this.cache.audio.exists('tema-mapuche-tribal')) this.load.audio('tema-mapuche-tribal', URL_TEMA);
+    this.load.audio('sfx-pinon-recoger', new URL('../../assets/audio/efectos/pinon-recoger.wav', import.meta.url).href);
     this.load.on('loaderror', archivo => {
-      if (archivo.key === 'tema-mapuche-tribal') console.error('No se pudo cargar la música:', archivo.src);
+      if (archivo.key === 'tema-mapuche-tribal' || archivo.key === 'sfx-pinon-recoger') {
+        console.error('No se pudo cargar el audio:', archivo.src);
+      }
     });
   }
 

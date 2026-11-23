@@ -128,6 +128,7 @@ export class Recoleccion {
   }
 
   recolectar(pewen, efecto) {
+    this.escena.sound.play('sfx-pinon-recoger', { volume: 0.72 });
     this.crearParticulas(pewen);
     pewen.recolectado = true;
     pewen.pinones.setVisible(false);
