@@ -66,3 +66,11 @@
 - La publicación de GitHub Pages todavía no está disponible (404); la verificación se hizo en servidor local.
 - No se modificaron controles ni valores de configuración o mecánicas.
 
+## Reducción de ruido visual · Etapa 1
+
+- Reemplacé las 430 matas dispersas por 13 manchones de 7 (91 en total), agrupados con semilla fija y separados del camino, la ruka, los pewenes y el río.
+- Reduje las piedras de 34 a 12; cuatro pares y cuatro rocas aisladas. Los arbustos aparecen junto a algunas rocas.
+- Reduje los árboles decorativos de 20 a 8 y los distribuí en grupos, manteniendo libres las zonas de camino e interacción.
+- Añadí constantes visuales ajustables en `CONFIG.mapa.decoracion` para número de manchones, matas por manchón, piedras y radios despejados.
+- Verificación local: partida abierta en navegador, decoración agrupada visible y consola sin errores. No se tocaron mecánicas ni valores jugables.
+
