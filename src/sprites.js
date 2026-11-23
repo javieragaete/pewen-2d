@@ -165,9 +165,6 @@ function crearMatrizMontana(variante) {
 function crearMatrizCielo() {
   const matriz = matrizVacia(16, 16);
   for (let y = 0; y < 16; y++) matriz[y].fill('A');
-  [[3, 4, 'N'], [12, 10, 'C'], [8, 13, 'N']].forEach(([x, y, color]) => {
-    matriz[y][x] = color;
-  });
   return guardarMatriz(matriz);
 }
 
