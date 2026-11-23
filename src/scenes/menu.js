@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { aplicarIluminacion, actualizarVolumen } from '../settings.js';
 import { textoPixel } from '../tipografia.js';
 import { registrarSpritesPixel } from '../sprites.js';
 import { dibujarFondoMenu } from '../paisaje-menu.js';
@@ -15,6 +16,8 @@ export class EscenaMenu extends Phaser.Scene {
 
   create() {
     registrarSpritesPixel(this);
+    aplicarIluminacion(this);
+    actualizarVolumen(this);
     this.dibujarPaisaje();
     this.teclas = this.input.keyboard.addKeys('UP,DOWN,W,S,ENTER,SPACE,ESC');
     this.contenido = this.add.container(0, 0);
@@ -39,8 +42,9 @@ export class EscenaMenu extends Phaser.Scene {
     this.agregarOpcion('Nuevo juego', () => this.scene.start('Juego'));
     this.agregarOpcion('Cargar partida', null, 'Sin partida guardada');
     this.agregarOpcion('Cómo jugar', () => this.mostrarSecundaria('Cómo jugar'));
-    this.agregarOpcion('Opciones', () => this.mostrarSecundaria('Opciones'));
-    this.agregarOpcion('Créditos', () => this.mostrarSecundaria('Créditos'));
+    this.agregarOpcion('Audio', () => this.scene.start('Configuracion', { categoria: 'Audio' }));
+    this.agregarOpcion('Iluminación', () => this.scene.start('Configuracion', { categoria: 'Iluminación' }));
+    this.agregarOpcion('Botones', () => this.scene.start('Configuracion', { categoria: 'Botones' }));
     this.seleccionar(0);
   }
 

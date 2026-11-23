@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { cargarPreferencias, mostrarAsignacion } from '../settings.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
 import { ESCALA_PIXEL, dibujarMarcoPixel, registrarSpritesPixel } from '../sprites.js';
@@ -23,21 +24,22 @@ export class EscenaJuego extends Phaser.Scene {
     this.newen = partida.newenInicial;
     this.equilibrio = partida.equilibrioInicial;
     this.posicionAnterior = new Phaser.Math.Vector2(this.personaje.x, this.personaje.y);
-    this.recoleccion = new Recoleccion(this, efecto => this.aplicarRecoleccion(efecto));
+    const { controles } = cargarPreferencias();
+    this.recoleccion = new Recoleccion(this, efecto => this.aplicarRecoleccion(efecto), controles);
     this.estadoPaisaje = 'normal';
     this.recoleccion.actualizarEquilibrio(this.equilibrio);
     this.hud = new Hud(this);
     this.jornadas = new GestorJornadas(this);
 
-    this.flechas = this.input.keyboard.createCursorKeys();
-    this.wasd = this.input.keyboard.addKeys('W,A,S,D');
+    this.movimiento = Object.fromEntries(['up', 'down', 'left', 'right'].map(direccion =>
+      [direccion, controles[direccion].filter(Boolean).map(tecla => this.input.keyboard.addKey(tecla))]));
     this.cameras.main.setBounds(0, 0, mundo.ancho, mundo.alto);
     this.cameras.main.startFollow(this.personaje, true, camara.seguimiento, camara.seguimiento);
 
     const marcoAyuda = this.add.graphics({ x: 12, y: pantalla.alto - 48 });
-    dibujarMarcoPixel(marcoAyuda, 0, 0, 250, 36, color('tinta'), color('musgo'));
+    dibujarMarcoPixel(marcoAyuda, 0, 0, 380, 36, color('tinta'), color('musgo'));
     marcoAyuda.setScrollFactor(0).setDepth(mundo.alto + 1);
-    const ayudaControl = this.add.text(24, pantalla.alto - 40, 'Flechas o WASD · Mover', {
+    const ayudaControl = this.add.text(24, pantalla.alto - 40, 'Mover: ' + ['up', 'left', 'down', 'right'].map(k => mostrarAsignacion(controles[k])).join(' '), {
       fontFamily: mono, fontSize: '16px', color: paletaPixel.nieve
     }).setScrollFactor(0).setDepth(mundo.alto + 1);
     this.time.delayedCall(8000, () => this.tweens.add({
@@ -285,10 +287,9 @@ export class EscenaJuego extends Phaser.Scene {
       return;
     }
 
-    const { left, right, up, down } = this.flechas;
-    const { W, A, S, D } = this.wasd;
-    const x = Number(right.isDown || D.isDown) - Number(left.isDown || A.isDown);
-    const y = Number(down.isDown || S.isDown) - Number(up.isDown || W.isDown);
+    const pulsado = direccion => Number(this.movimiento[direccion].some(tecla => tecla.isDown));
+    const x = pulsado('right') - pulsado('left');
+    const y = pulsado('down') - pulsado('up');
     const personaje = this.personaje;
     const moviendose = !this.posicionAnterior.equals(personaje);
     this.posicionAnterior.set(personaje.x, personaje.y);
