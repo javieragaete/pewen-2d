@@ -2,6 +2,7 @@ import { CONFIG } from '../config.js';
 import { Recoleccion } from './recoleccion.js';
 import { Hud } from './hud.js';
 import { ESCALA_PIXEL, dibujarMarcoPixel, registrarSpritesPixel } from '../sprites.js';
+import { GestorJornadas } from '../narrativa.js';
 
 const { pantalla, mundo, jugador, camara, mapa, partida, paletaPixel } = CONFIG;
 const Phaser = globalThis.Phaser;
@@ -26,7 +27,7 @@ export class EscenaJuego extends Phaser.Scene {
     this.estadoPaisaje = 'normal';
     this.recoleccion.actualizarEquilibrio(this.equilibrio);
     this.hud = new Hud(this);
-    this.finJornada = null;
+    this.jornadas = new GestorJornadas(this);
 
     this.flechas = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys('W,A,S,D');
@@ -276,6 +277,14 @@ export class EscenaJuego extends Phaser.Scene {
   }
 
   update(tiempo, delta) {
+    const reloj = this.jornadas.actualizar(tiempo);
+    if (!reloj.libre) {
+      this.personaje.body.setVelocity(0, 0);
+      this.indicadorDescanso.setVisible(false);
+      this.hud.actualizar(this.newen, this.equilibrio, this.recoleccion.pinones, reloj.segundos, this.jornadas.totalLof);
+      return;
+    }
+
     const { left, right, up, down } = this.flechas;
     const { W, A, S, D } = this.wasd;
     const x = Number(right.isDown || D.isDown) - Number(left.isDown || A.isDown);
@@ -302,9 +311,7 @@ export class EscenaJuego extends Phaser.Scene {
     this.actualizarAnimacionJugador(x, y, tiempo, bloqueado);
     personaje.setDepth(personaje.y);
 
-    this.finJornada ??= tiempo + partida.duracionJornada * 1000;
-    const segundosRestantes = Math.max(0, Math.ceil((this.finJornada - tiempo) / 1000));
-    this.hud.actualizar(this.newen, this.equilibrio, this.recoleccion.pinones, segundosRestantes);
+    this.hud.actualizar(this.newen, this.equilibrio, this.recoleccion.pinones, reloj.segundos, this.jornadas.totalLof);
   }
 }
 
