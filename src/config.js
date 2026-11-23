@@ -21,7 +21,8 @@ export const CONFIG = {
     newenInicial: 100,
     equilibrioInicial: 50,
     maximoBarra: 100,
-    metaPinones: 23,
+    metaPinones: 14,
+    maximoCosechaJornada: 7,
     duracionJornada: 120,
     desgastePorSegundo: 1.4,
     descansoPorSegundo: 22,
@@ -29,7 +30,7 @@ export const CONFIG = {
     velocidadSinNewen: 0.45
   },
   jornadas: {
-    cantidad: 3,
+    cantidad: 2,
     tarjetaMs: 1500,
     resumenMs: 2700,
     fundidoMs: 250

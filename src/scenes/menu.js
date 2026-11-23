@@ -75,7 +75,7 @@ export class EscenaMenu extends Phaser.Scene {
     this.prepararPantalla('Cómo jugar', '');
     this.paginasAyuda = [
       [
-        ['OBJETIVO', 'Reúne piñones para el lof antes de que llegue el invierno. Tienes tres jornadas de dos minutos.'],
+        ['OBJETIVO', 'Reúne 14 piñones para el lof antes de que llegue el invierno. Tienes dos jornadas de dos minutos y puedes recoger hasta 7 por jornada.'],
         ['CONTROLES', 'Muévete con las flechas o WASD. Pulsa E para interactuar con los pewenes y la ruka.'],
         ['HUD', 'Consulta aquí tu newen, equilibrio, piñones y el tiempo que queda.']
       ],

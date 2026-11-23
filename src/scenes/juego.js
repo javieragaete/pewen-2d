@@ -123,6 +123,7 @@ export class EscenaJuego extends Phaser.Scene {
       newen: this.newen,
       equilibrio: this.equilibrio,
       pinones: this.recoleccion.pinones,
+      pinonesJornada: this.recoleccion.pinonesJornada,
       distribucionPewenes: this.recoleccion.pewenes.map(({ x, y, tipo }) => ({ x, y, tipo })),
       completoConsumido: !this.extraHackathon.disponible,
       reporteTerminado: this.extraHackathon.reporteTerminado,
@@ -147,6 +148,7 @@ export class EscenaJuego extends Phaser.Scene {
       if (datos.reporteTerminado === true) this.extraHackathon.finalizarReporte();
       this.equilibrio = datos.equilibrio;
       this.recoleccion.pinones = datos.pinones;
+      this.recoleccion.pinonesJornada = datos.pinonesJornada ?? (datos.entregadoJornada || 0) + (datos.pinones || 0);
       this.recoleccion.restaurarDistribucion(datos.distribucionPewenes);
       this.recoleccion.pewenes.forEach((pewen, i) => {
         pewen.recolectado = Boolean(datos.recolectados?.[i]);
