@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { ESCALA_PIXEL, dibujarMarcoPixel } from '../sprites.js';
 
 const { pantalla, mundo, mapa, recoleccion, paletaPixel } = CONFIG;
 const { Input, Math: Matematica } = globalThis.Phaser;
@@ -15,20 +16,20 @@ export class Recoleccion {
     this.teclas = escena.input.keyboard.addKeys({ interactuar: 'E', permiso: 'ONE', directa: 'TWO' });
     this.ocupaAlJugador = false;
     this.objetivo = null;
-    this.pista = escena.add.text(0, 0, '', {
-      fontFamily: mono, fontSize: '17px',
-      color: paletaPixel.nieve, backgroundColor: paletaPixel.tinta, padding: { x: 10, y: 6 }
-    }).setOrigin(0.5, 1).setDepth(mundo.alto + 2).setVisible(false);
+    const marcoPista = escena.add.graphics();
+    dibujarMarcoPixel(marcoPista, -94, -29, 188, 29, color('tinta'), color('musgo'));
+    const textoPista = escena.add.text(0, -6, '', {
+      fontFamily: mono, fontSize: '15px', color: paletaPixel.nieve
+    }).setOrigin(0.5, 1);
+    this.pistaTexto = textoPista;
+    this.pista = escena.add.container(0, 0, [marcoPista, textoPista])
+      .setDepth(mundo.alto + 2).setVisible(false);
 
     const panel = escena.add.graphics();
-    panel.fillStyle(color('tinta')).fillRect(-255, -81, 510, 162);
-    panel.fillStyle(color('rojo')).fillRect(-255, -81, 510, 4);
-    panel.fillRect(-255, 77, 510, 4).fillRect(-255, -81, 4, 162).fillRect(251, -81, 4, 162);
-    panel.fillStyle(color('madera')).fillRect(-247, -73, 494, 2);
-    panel.fillRect(-247, 71, 494, 2).fillRect(-247, -73, 2, 146).fillRect(245, -73, 2, 146);
+    dibujarMarcoPixel(panel, -210, -70, 420, 140, color('tinta'), color('rojo'));
     const texto = escena.add.text(0, 0, '', {
-      fontFamily: mono, fontSize: '20px',
-      color: paletaPixel.nieve, align: 'center', lineSpacing: 8, wordWrap: { width: 470 }
+      fontFamily: mono, fontSize: '18px',
+      color: paletaPixel.nieve, align: 'center', lineSpacing: 6, wordWrap: { width: 370 }
     }).setOrigin(0.5);
     this.texto = texto;
     this.panel = escena.add.container(pantalla.ancho / 2, pantalla.alto / 2, [panel, texto])
@@ -37,7 +38,7 @@ export class Recoleccion {
 
   crearPewen(x, y) {
     const arbol = this.escena.add.image(x, y, 'pewen-normal')
-      .setOrigin(0.5, 1).setScale(3).setDepth(y);
+      .setOrigin(0.5, 1).setScale(ESCALA_PIXEL).setDepth(y);
     const pinones = this.escena.add.container(x, y - 7, [
       this.escena.add.image(-16, 0, 'pinon').setScale(2),
       this.escena.add.image(0, -5, 'pinon').setScale(2),
@@ -50,9 +51,8 @@ export class Recoleccion {
     const estado = equilibrio >= 60 ? 'sano' : equilibrio <= 30 ? 'seco' : 'normal';
     if (estado === this.estadoPewen) return;
     this.estadoPewen = estado;
-    const escala = estado === 'sano' ? 3 : 2;
     this.pewenes.forEach(pewen => {
-      pewen.arbol.setTexture('pewen-' + estado).setScale(escala);
+      pewen.arbol.setTexture('pewen-' + estado);
     });
   }
 
@@ -78,7 +78,8 @@ export class Recoleccion {
     this.pista.setVisible(Boolean(cercano));
     if (!cercano) return;
     this.pista.setPosition(cercano.x, cercano.y - 137)
-      .setText(cercano.recolectado ? 'Ya recolectado' : '[E] Interactuar');
+      .setDepth(cercano.y + 2);
+    this.pistaTexto.setText(cercano.recolectado ? 'Ya recolectado' : '[E] Interactuar');
     if (interactuar && !cercano.recolectado) {
       this.aviso?.remove();
       this.objetivo = cercano;
