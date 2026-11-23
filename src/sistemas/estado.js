@@ -99,10 +99,7 @@ class DrenajeNewen {
     const cansado = this.estado.newen <= 0;
     if (cansado === this.lentoNotificado) return;
     this.lentoNotificado = cansado;
-    this.escena.game.events.emit('newen:cambio', {
-      newen: this.estado.newen,
-      multiplicadorMovimiento: cansado ? A.multiplicadorMovimientoCansado : 1
-    });
+    this.escena.game.events.emit('newen:cambio', { newen: this.estado.newen });
   }
 
   destruir() {

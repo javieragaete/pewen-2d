@@ -65,13 +65,15 @@
       type: Phaser.AUTO, parent: 'juego', width: 1280, height: 720,
       pixelArt: true, roundPixels: true, scene: [MundoSimulado, EscenaPrologo, EscenaFinal]
     });
+    let ultimoCambioNewen = 'sin cambio';
+    juego.events.on('newen:cambio', ({ newen }) => { ultimoCambioNewen = `{ newen: ${newen} }`; });
     const escenaActiva = () => juego.scene.getScene('Mundo');
     function mostrarEstado(escena) {
       const s = leerEstado(escena.game);
       const ms = escena.sistemas?.tiempoRestante ?? 120000;
       const bosque = escena.sistemas?.pewenes.arboles.map(arbol => arbol.secoTemporal ? 'seco' : arbol.recuperaEn ? 'recupera' : 'disponible').join(', ') ?? 'iniciando';
       document.querySelector('#estado').textContent =
-        `Jornada ${s.jornada}/3 · newen ${Math.round(s.newen)} · equilibrio ${Math.round(s.equilibrio)} · carga ${s.pinonesLlevados} · lof ${s.pinonesEntregados}/28 · reloj ${Math.ceil(ms / 1000)} s · permisos ${s.permisosPedidos} · directas ${s.tomasDirectas} · pewenes: ${bosque}`;
+        `Jornada ${s.jornada}/3 · newen ${Math.round(s.newen)} · equilibrio ${Math.round(s.equilibrio)} · carga ${s.pinonesLlevados} · lof ${s.pinonesEntregados}/28 · reloj ${Math.ceil(ms / 1000)} s · permisos ${s.permisosPedidos} · directas ${s.tomasDirectas} · evento ${ultimoCambioNewen} · pewenes: ${bosque}`;
     }
 
     document.querySelector('#cargar').onclick = () => {

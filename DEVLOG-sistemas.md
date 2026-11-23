@@ -64,7 +64,7 @@
 - Se mantuvo la meta en 28 y se dejó `pewenesParaBalance: 8` como referencia ajustable. Cálculo con permiso siempre: con equilibrio inicial 50, los primeros dos pewenes dan 3 cada uno; los seis siguientes dan 4 al superar 60 de equilibrio. Total de ocho = 30. Siete dan 26, así que se necesitan casi todos los ocho para superar la meta. Una o dos tomas directas dan 8 cada una y vuelven la meta más cómoda, a costa de bajar el equilibrio.
 - Añadidos cuatro iconos del HUD como matrices de 10×8 usando la paleta aprobada; barras y conteos se alinean en un marco de un borde. Los iconos usan escala x3.
 - Añadido drenaje lento de newen al moverse, multiplicador al nadar y rescate al agotarse en agua con pérdida porcentual de carga. El newen se recupera 20 puntos al iniciar las jornadas 2 y 3 y 12 al entregar piñones en la ruka (ambos valores ajustables).
-- Se emite `newen:cambio` con multiplicador 0.65 al llegar a cero y 1 al recuperarse; el flujo A debe consumir este evento para reducir/restaurar la velocidad del personaje.
+- Contrato exacto: `this.game.events.emit('newen:cambio', { newen: this.estado.newen })`. Se emite al cruzar el umbral entre newen positivo y 0; el flujo Mundo decide la velocidad y la restaura al recuperarse.
 - Los piñones que queden en el suelo se limpian al cerrar la jornada para que no puedan recogerse durante el resumen o una jornada posterior.
 - Se corrigió una letra de la matriz del icono de piñón que no pertenecía a la paleta. Se validó el HUD tras el cambio.
 
@@ -74,4 +74,17 @@
 - En un tab nuevo, el arnés abrió sin errores ni advertencias. Se vio el nuevo HUD con iconos pixelados, las barras, el conteo y el reloj.
 - El botón de rescate dejó 7 de 10 piñones tras aplicar la pérdida del 30%; el final favorable mostró el texto correspondiente a meta cumplida, equilibrio alto y proporción de permisos suficiente.
 - Los diálogos, prólogo, finales y reinicio de la etapa 4 continuaron funcionando en pruebas de navegador.
+
+## Ajuste de contrato — integración con Mundo
+
+- Payload estable del evento: `this.game.events.emit('newen:cambio', { newen: this.estado.newen })`. Sistemas lo emite al pasar entre newen positivo y cero; Mundo interpreta el valor y restaura la velocidad al recuperarse.
+- `src/ajustes/mundo.js` define `velocidadSinNewen: 0.45`; el jugador usa 45% de su velocidad base cuando `newen` es 0.
+- `src/main.js` registra Prologo y Final por importación opcional. Si la escena Mundo está disponible, la envuelve para conectar `iniciarSistemas(escena)` al evento `mundo:listo` y para consumir `newen:cambio`.
+- El arnés muestra el payload del evento para validar que no cambie su forma.
+
+### Verificación del ajuste
+
+- `node --check` pasó en `main.js`, `ajustes/mundo.js`, `sistemas/estado.js` y `scenes/prologo.js`.
+- El arnés mostró exactamente `{ newen: 0 }` al llegar a cero y mantuvo la pérdida de 30% en el rescate.
+- El arranque local cargó Menú, y las importaciones de Prólogo y Final no generaron errores. Esta rama aún no contiene `src/scenes/mundo.js`; por eso el enganche se prueba cuando A publique esa escena.
 

@@ -38,7 +38,8 @@ export class EscenaPrologo extends Phaser.Scene {
 
   comenzar() {
     guardarEstado(this.game, crearEstadoInicial());
-    this.scene.start('Mundo', { nuevaPartida: true });
+    const destino = this.scene.manager.keys.Mundo ? 'Mundo' : 'Juego';
+    this.scene.start(destino, { nuevaPartida: true });
   }
 }
 
