@@ -103,3 +103,11 @@
 - Menú y partida ejecutados en servidor local; se revisó visualmente el cauce continuo, la escala y el HUD. Consola sin errores.
 - Las mecánicas, controles, tiempos y valores jugables permanecen iguales; solo se modificaron colores y constantes de presentación.
 
+## Historia del lof · Etapa 1 — Jornadas y entrega
+
+- Añadí `src/narrativa.js` como gestor aislado de jornadas: 3 jornadas, tarjetas breves y reloj basado en `partida.duracionJornada`.
+- La carga se entrega automáticamente al acercarse a la ruka dentro de `partida.alcanceDescanso`; el total entregado se conserva para todo el lof.
+- Al vencer el reloj, la carga que quede se pierde y se informa en el resumen. Con los cuatro pewenes usados y la carga entregada, `[E] Terminar jornada` permite avanzar antes.
+- El HUD diferencia la carga actual del total/meta. Los tiempos nuevos de tarjeta, resumen y fundido están centralizados en `CONFIG.jornadas`.
+- No se modificaron las cantidades de recolección ni otros valores jugables existentes.
+
