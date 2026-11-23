@@ -1,5 +1,7 @@
 import { AJUSTES_SISTEMAS as A } from '../ajustes/sistemas.js';
 import { GestorJornadas } from './jornadas.js';
+import { Pewenes } from './pewenes.js';
+import { Recoleccion } from './recoleccion.js';
 
 const CLAVE_ESTADO = 'estado';
 
@@ -29,7 +31,13 @@ export function guardarEstado(juego, estado) {
 export function iniciarSistemas(escena) {
   const conectar = mundo => {
     const destino = mundo?.anclas ? mundo : escena;
-    destino.sistemas ??= new GestorJornadas(destino);
+    if (destino.sistemas) return;
+    const estado = leerEstado(destino.game);
+    guardarEstado(destino.game, estado);
+    const pewenes = new Pewenes(destino, estado);
+    const recoleccion = new Recoleccion(destino, estado, pewenes);
+    const jornadas = new GestorJornadas(destino);
+    destino.sistemas = { estado, pewenes, recoleccion, jornadas };
   };
 
   if (escena.anclas) conectar(escena);

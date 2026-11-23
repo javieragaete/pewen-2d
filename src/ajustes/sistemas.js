@@ -15,6 +15,14 @@ export const AJUSTES_SISTEMAS = {
   pausaPermisoMs: 950,
   permiso: { pinones: 3, equilibrio: 5, newen: -5 },
   directa: { pinones: 8, equilibrio: -15, newen: -10 },
-  fraccionPermisosFinalBueno: 2 / 3
+  fraccionPermisosFinalBueno: 2 / 3,
+  radioInteraccionPewen: 82,
+  duracionCaidaPinonMs: 520,
+  separacionPinonesMs: 105,
+  duracionPinonSueloMs: 8_000,
+  distanciaRecogerPinon: 34,
+  umbralEquilibrioSano: 60,
+  umbralEquilibrioBajo: 30,
+  pewenesSecosExtraEquilibrioBajo: 1
 };
 

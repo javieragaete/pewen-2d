@@ -17,3 +17,18 @@
 - Al reanudar y avanzar 120 segundos, apareció el resumen de jornada con el total actualizado.
 - `node --check` pasó en los módulos propios y en el arnés de prueba. No se observaron fallos durante la ejecución aislada.
 
+## Etapa 2 — Pewenes y recolección
+
+- Añadido `src/sistemas/pewenes.js`: toma las anclas de Mundo, usa las texturas del contrato si están disponibles y dibuja placeholders propios si aún faltan. El árbol cercano muestra la indicación de interacción.
+- Añadido `src/sistemas/recoleccion.js`: menú con permiso o toma directa, pausa del jugador y del reloj, ajuste de newen/equilibrio y caída de piñones individuales que se recogen al pasar sobre ellos. Los piñones del suelo vencen a los 8 segundos.
+- Con equilibrio de 60 o más, cada cosecha deja un piñón adicional. Al comenzar la jornada siguiente se recuperan las tomas con permiso; las directas quedan secas esa jornada. Con equilibrio de 30 o menos se seca un pewén adicional.
+- `iniciarSistemas` conecta estado, jornadas, pewenes y recolección al evento de mundo listo, sin importar módulos de otros flujos.
+- Ampliado el arnés aislado con dos pewenes simulados y controles de prueba para acercarse, elegir y recoger.
+
+### Verificación
+
+- La página aislada arrancó con la tarjeta de jornada y dos pewenes placeholder, sin depender de las texturas de otros flujos.
+- Pedir permiso aplicó la pausa de 950 ms, contó una decisión y dejó 3 piñones recogidos. La toma directa dejó 8, para 11 en total.
+- Al avanzar 120 segundos se perdió la carga pendiente y apareció el resumen. La jornada 2 mostró recuperado el pewén tomado con permiso y seco el tomado directamente.
+- La consola del navegador no mostró errores ni advertencias. `node --check` pasó en los módulos propios.
+
