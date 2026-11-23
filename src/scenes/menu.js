@@ -50,6 +50,7 @@ export class EscenaMenu extends Phaser.Scene {
     this.agregarOpcion('Audio', () => this.scene.start('Configuracion', { categoria: 'Audio' }));
     this.agregarOpcion('Iluminación', () => this.scene.start('Configuracion', { categoria: 'Iluminación' }));
     this.agregarOpcion('Botones', () => this.scene.start('Configuracion', { categoria: 'Botones' }));
+    this.contenido.add(this.texto(124, 667, 'Desarrollado por utemsitos', 15, paletaPixel.musgo));
     this.seleccionar(0);
   }
 
