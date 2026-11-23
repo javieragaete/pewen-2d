@@ -146,7 +146,13 @@ export class Recoleccion {
   }
 
   recolectar(pewen, efecto) {
-    this.escena.sound.play('sfx-pinon-recoger', { volume: 0.72 });
+    const sonido = () => this.escena.sound.play('sfx-pinon-recoger', { volume: 0.9 });
+    if (this.escena.sound.locked) {
+      this.escena.sound.once(globalThis.Phaser.Sound.Events.UNLOCKED, sonido);
+      this.escena.sound.unlock();
+    } else {
+      sonido();
+    }
     this.crearParticulas(pewen);
     pewen.recolectado = true;
     pewen.pinones.setVisible(false);

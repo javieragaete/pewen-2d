@@ -193,7 +193,10 @@ export class EscenaMenu extends Phaser.Scene {
 
     const sonar = () => this.sound.play(opciones.clave, { volume: opciones.volumen });
     if (this.sound.locked) {
-      if (gestoUsuario) this.sound.once(Phaser.Sound.Events.UNLOCKED, sonar);
+      if (gestoUsuario) {
+        this.sound.once(Phaser.Sound.Events.UNLOCKED, sonar);
+        this.sound.unlock();
+      }
       return;
     }
     sonar();
