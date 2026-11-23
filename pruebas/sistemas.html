@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba aislada — Sistemas Pewén</title>
+  <style>
+    body { margin: 0; background: #202522; color: #e6e7d8; font: 16px Consolas, "Courier New", monospace; }
+    main { width: min(100%, 1280px); margin: auto; }
+    canvas { display: block; image-rendering: pixelated; }
+    nav { display: flex; flex-wrap: wrap; gap: .5rem; padding: 1rem; }
+    button { padding: .65rem .9rem; color: #e6e7d8; background: #344c3b; border: 2px solid #202522; font: inherit; cursor: pointer; }
+    output { display: block; padding: 0 1rem 1rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <nav aria-label="Eventos de prueba">
+      <button id="cargar">Cargar 3 piñones</button>
+      <button id="entregar">Simular entrega en la ruka</button>
+      <button id="pausar">Pausar/reanudar por diálogo</button>
+      <button id="avanzar">Simular 120 segundos</button>
+      <button id="reiniciar">Reiniciar prueba</button>
+    </nav>
+    <div id="juego" aria-label="Escena de prueba de sistemas"></div>
+    <output id="estado">Iniciando prueba…</output>
+  </main>
+  <script src="../vendor/phaser.min.js"></script>
+  <script type="module">
+    import { iniciarSistemas, leerEstado, guardarEstado } from '../src/sistemas/estado.js';
+
+    class MundoSimulado extends Phaser.Scene {
+      constructor() { super('PruebaSistemas'); }
+      create() {
+        this.add.rectangle(640, 540, 1280, 360, 0x4a6845);
+        this.add.rectangle(640, 690, 1280, 60, 0x92704b);
+        this.add.rectangle(640, 450, 42, 72, 0xc3845e).setStrokeStyle(2, 0x202522);
+        this.add.rectangle(980, 455, 100, 86, 0x344c3b).setStrokeStyle(2, 0x202522);
+        this.add.text(980, 510, 'pewén de prueba', { color: '#e6e7d8', fontFamily: 'Consolas' }).setOrigin(0.5);
+        this.anclas = { inicioJugador: { x: 640, y: 600 }, rukaPrincipal: { x: 220, y: 600 }, pewenes: [] };
+        iniciarSistemas(this);
+        this.game.events.on('hud:actualizar', () => mostrarEstado(this));
+        this.game.events.on('hud:reloj', () => mostrarEstado(this));
+        mostrarEstado(this);
+      }
+    }
+
+    const juego = new Phaser.Game({
+      type: Phaser.AUTO, parent: 'juego', width: 1280, height: 720,
+      pixelArt: true, roundPixels: true, scene: [MundoSimulado]
+    });
+    const escenaActiva = () => juego.scene.getScene('PruebaSistemas');
+    function mostrarEstado(escena) {
+      const s = leerEstado(escena.game);
+      const ms = escena.sistemas?.tiempoRestante ?? 120000;
+      document.querySelector('#estado').textContent =
+        `Jornada ${s.jornada}/3 · carga ${s.pinonesLlevados} · lof ${s.pinonesEntregados}/28 · reloj ${Math.ceil(ms / 1000)} s`;
+    }
+
+    document.querySelector('#cargar').onclick = () => {
+      const escena = escenaActiva();
+      const s = leerEstado(escena.game); s.pinonesLlevados += 3; guardarEstado(escena.game, s); mostrarEstado(escena);
+    };
+    document.querySelector('#entregar').onclick = () => juego.events.emit('entrega:pinones');
+    let bloqueado = false;
+    document.querySelector('#pausar').onclick = () => {
+      bloqueado = !bloqueado;
+      juego.events.emit('jugador:bloqueado', { bloqueado });
+    };
+    document.querySelector('#avanzar').onclick = () => {
+      const escena = escenaActiva();
+      escena.events.emit('update', escena.time.now, 120000);
+      mostrarEstado(escena);
+    };
+    document.querySelector('#reiniciar').onclick = () => location.reload();
+  </script>
+</body>
+</html>
+
