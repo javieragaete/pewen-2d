@@ -111,7 +111,7 @@ function crearMatrizPewen(estado) {
       for (let dx = -mitad; dx <= mitad; dx++) {
         const borde = Math.abs(dx) === mitad || dy === 4 && indice === niveles.length - 1;
         const ladoClaro = dx < -Math.max(1, Math.floor(mitad * 0.35));
-        matriz[y][centro + dx] = borde ? 'K' : ladoClaro ? tonos.brillo : tonos.hoja;
+        matriz[y][centro + dx] = borde ? 'K' : (ladoClaro || (dy === 2 && (dx + indice * 3 + 20) % 7 < 2)) ? tonos.brillo : tonos.hoja;
       }
     }
     const anchoRama = Math.min(15, nivel.ancho + 2);
@@ -127,7 +127,7 @@ function crearMatrizPewen(estado) {
 
   for (let y = 17; y < 40; y++) {
     matriz[y][14] = 'K'; matriz[y][15] = 'B';
-    matriz[y][16] = 'W'; matriz[y][17] = 'K';
+    matriz[y][16] = y % 5 === 0 ? 'B' : 'W'; matriz[y][17] = 'K';
   }
   return agregarContorno(guardarMatriz(matriz));
 }
@@ -161,7 +161,9 @@ function crearMatrizArbolNativo(variante) {
       const dx = (x - 12) / 10;
       const dy = (y - 13) / 12;
       if (dx * dx + dy * dy < 1) {
-        matriz[y][x] = copa;
+        // Grupos de hojas iluminadas desde arriba a la izquierda.
+        const relieve = Math.sin(x * 0.74 + Math.floor(y / 3)) + Math.cos(y * 0.87);
+        matriz[y][x] = dx + dy > 0.85 ? 'D' : relieve - dx - dy > 1.35 ? (variante ? 'V' : 'F') : copa;
       }
     }
   }
@@ -252,14 +254,44 @@ const MATRIZ_ARBUSTO = [
   '.....FFFFFF.....','................'
 ];
 const MATRIZ_ROCA_0 = [
-  '................','.......HH.......','.....HHGGH......','....HGGGGGH.....',
-  '...HGGGGGGGH....','..HGGGGGGGGGH...','..HHGGGGGGGHH...','...HHHHHHHHH....',
-  '................','................'
+  '...M............MV...',
+  '....MV.......M.VV...M',
+  '..M..VV......VVV..MV.',
+  '...VV.V...HHH.VV.VV..',
+  '..M.VVV.HHNNHH.VVV...',
+  '...VVV.HHHHHHGG.V..MV',
+  '.....VHHHHGGHGGG..VV.',
+  '...HHHGHGGGGGGGGG.VV.',
+  '..HNHGGGGGGGGGFFVVV..',
+  '.HHHHGGGFFGFFVVVVF...',
+  '..GHGGFFVVMMVVFF.....',
+  '...FFVVVVFFFFDDD.....'
 ];
 const MATRIZ_ROCA_1 = [
-  '................','......HHH.......','....HHGGGGH.....','...HGGGGGGGH....',
-  '..HGGGGGGGGGH...','..HGGGGGGGGGH...','...HHGGGGGGH....','....HHHHHHHH....',
-  '................','................'
+  '...........M...V.',
+  '.......HHH..V.V..',
+  '.....HNNHHH.VVV..',
+  '...HHHHHHGGH.VV..',
+  '..HHGGHHGGGGGV.MV',
+  '.HHHGGGGGGGGGVVV.',
+  '..GGGGGVVGFFFVV..',
+  '...FVVMMVVFFF....'
+];
+const MATRIZ_TRONCO = [
+  '....................W....',
+  '...................WB....',
+  '.........V...MMV..WB..VV.',
+  '........VVMVVVMMMVVVMVVVB',
+  '.....SSSVVMMMVVVVVFFFWWBB',
+  '...SSTTTSSVVVVFFFFWWTBB..',
+  '..STWWWTTSTFFWWTTWWWBB...',
+  '.STWSTTWTSTWWTTWWWBBB....',
+  '.STWTBWWTSTWWWWWBBBB.....',
+  '.STWWTTWTSTWWBBBVVM......',
+  '..STWWWTTSTBBBBVVVV......',
+  '...SSTTTSSBB..VVFF.......',
+  '..VVVSSSVVFFVVF..........',
+  '.FFVVVVVFFFF.............'
 ];
 const MATRIZ_PASTO = [
   '........','...V....','...V.M..','..VVV...','.V.V.V..',
@@ -363,6 +395,7 @@ export function registrarSpritesPixel(escena) {
     'montana-0': crearMatrizMontana(0),
     'montana-1': crearMatrizMontana(1),
     'arbusto': MATRIZ_ARBUSTO,
+    'tronco-musgo': MATRIZ_TRONCO,
     'roca-0': MATRIZ_ROCA_0,
     'roca-1': MATRIZ_ROCA_1,
     'pasto-0': MATRIZ_PASTO,
